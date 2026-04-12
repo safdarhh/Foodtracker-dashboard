@@ -5,8 +5,48 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart,
 // ============================================
 // CONFIGURATION
 // ============================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbxzGucQBF_ojqHdKuqERq6puFjxne4D51ahL62m6lJp73hQqjdDg1FdcA_UIyOdfgw/exec';
 const TARGETS = { calories: 1800, protein: 160, carbs: 130, fat: 55 };
 const TARGET_BF = { min: 10, max: 12 }; // Abs visibility target
+
+// ============================================
+// DATA FETCHING FROM GOOGLE SHEETS
+// ============================================
+const fetchFromSheet = async (action) => {
+  try {
+    const response = await fetch(`${API_URL}?action=${action}`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching from Google Sheets:', error);
+    return null;
+  }
+};
+
+const fetchAllData = async () => {
+  try {
+    const response = await fetch(`${API_URL}?action=getAllData`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching all data:', error);
+    return null;
+  }
+};
+
+const postToSheet = async (action, payload) => {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...payload }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error posting to Google Sheets:', error);
+    return null;
+  }
+};
 
 // ============================================
 // INBODY DATA (Parsed from CSV - 31 measurements)
@@ -207,13 +247,16 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ============================================
 // INBODY TAB - COMPREHENSIVE
 // ============================================
-const InBodyTab = () => {
+const InBodyTab = ({ data }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [chartView, setChartView] = useState('composition'); // composition, muscle, trends
   
-  const current = INBODY_HISTORY[INBODY_HISTORY.length - 1];
-  const previous = INBODY_HISTORY[INBODY_HISTORY.length - 2];
-  const first = INBODY_HISTORY[0];
+  // Use passed data or fallback to hardcoded
+  const inbodyHistory = data && data.length > 0 ? data : INBODY_HISTORY;
+  
+  const current = inbodyHistory[inbodyHistory.length - 1];
+  const previous = inbodyHistory[inbodyHistory.length - 2] || current;
+  const first = inbodyHistory[0];
   
   // Calculate changes
   const changes = {
@@ -233,11 +276,11 @@ const InBodyTab = () => {
   
   // Personal records
   const records = {
-    lowestFatPct: Math.min(...INBODY_HISTORY.map(d => d.fatPct)),
-    highestMuscle: Math.max(...INBODY_HISTORY.map(d => d.muscle)),
-    highestScore: Math.max(...INBODY_HISTORY.map(d => d.score)),
-    lowestWeight: Math.min(...INBODY_HISTORY.map(d => d.weight)),
-    highestWeight: Math.max(...INBODY_HISTORY.map(d => d.weight)),
+    lowestFatPct: Math.min(...inbodyHistory.map(d => d.fatPct)),
+    highestMuscle: Math.max(...inbodyHistory.map(d => d.muscle)),
+    highestScore: Math.max(...inbodyHistory.map(d => d.score)),
+    lowestWeight: Math.min(...inbodyHistory.map(d => d.weight)),
+    highestWeight: Math.max(...inbodyHistory.map(d => d.weight)),
   };
   
   // Fat to lose for abs
@@ -245,7 +288,7 @@ const InBodyTab = () => {
   const weeksToGoal = Math.ceil(fatToLose / 0.5); // 0.5kg fat loss per week
   
   // Chart data - last 12 measurements
-  const chartData = INBODY_HISTORY.slice(-12).map(d => ({
+  const chartData = inbodyHistory.slice(-12).map(d => ({
     ...d,
     label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     leanMass: d.weight - d.fat,
@@ -268,7 +311,7 @@ const InBodyTab = () => {
             Last scan: {new Date(current.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
         </div>
-        <span style={{ fontSize: 11, color: colors.textMuted }}>{INBODY_HISTORY.length} total</span>
+        <span style={{ fontSize: 11, color: colors.textMuted }}>{inbodyHistory.length} total</span>
       </div>
 
       {/* Main KPI Cards */}
@@ -427,7 +470,7 @@ const InBodyTab = () => {
             <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>kg fat</div>
           </div>
           <div style={{ ...styles.miniKpi, background: '#F5F3FF' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: colors.purple }}>{INBODY_HISTORY.length}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.purple }}>{inbodyHistory.length}</div>
             <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>scans</div>
           </div>
         </div>
@@ -595,7 +638,7 @@ const InBodyTab = () => {
               </tr>
             </thead>
             <tbody>
-              {[...INBODY_HISTORY].reverse().map((row, i) => (
+              {[...inbodyHistory].reverse().map((row, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #F5F5F5' }}>
                   <td style={{ padding: '8px 6px', color: colors.textPrimary }}>{new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</td>
                   <td style={{ padding: '8px 6px', textAlign: 'right' }}>{row.weight}</td>
@@ -661,13 +704,16 @@ const InBodyTab = () => {
 // ============================================
 // OTHER TABS (Simplified for brevity)
 // ============================================
-const DashboardTab = ({ allData, selectedDate, setSelectedDate }) => {
+const DashboardTab = ({ allData, selectedDate, setSelectedDate, inbodyData }) => {
   const dateKey = formatDateKey(selectedDate);
   const dayData = getDayData(allData, dateKey);
   const meals = dayData.meals || [];
   const dayNumber = getDayNumber(selectedDate);
   const totals = meals.reduce((acc, meal) => { (meal.items || []).forEach(item => { acc.cal += item.cal || 0; acc.p += item.p || 0; acc.c += item.c || 0; acc.f += item.f || 0; }); return acc; }, { cal: 0, p: 0, c: 0, f: 0 });
-  const current = INBODY_HISTORY[INBODY_HISTORY.length - 1];
+  
+  // Use passed inbody data or fallback
+  const inbody = inbodyData && inbodyData.length > 0 ? inbodyData : INBODY_HISTORY;
+  const current = inbody[inbody.length - 1];
 
   return (
     <>
@@ -720,12 +766,16 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate }) => {
   );
 };
 
-const InventoryTab = () => {
+const InventoryTab = ({ data }) => {
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState('All');
-  const cats = ['All', ...new Set(INVENTORY.map(i => i.category))];
-  const filtered = INVENTORY.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) && (cat === 'All' || i.category === cat));
-  const catColors = { Protein: { bg: '#F0FDF4', text: colors.primary }, Carbs: { bg: '#EFF6FF', text: colors.carbs }, Dairy: { bg: '#FFF7ED', text: colors.fat }, Beverages: { bg: '#F5F3FF', text: colors.purple }, Fruits: { bg: '#FDF2F8', text: colors.pink }, Supplements: { bg: '#FEF3C7', text: colors.yellow } };
+  
+  // Use passed data or fallback to hardcoded
+  const inventory = data && data.length > 0 ? data : INVENTORY;
+  
+  const cats = ['All', ...new Set(inventory.map(i => i.category))];
+  const filtered = inventory.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) && (cat === 'All' || i.category === cat));
+  const catColors = { Protein: { bg: '#F0FDF4', text: colors.primary }, Carbs: { bg: '#EFF6FF', text: colors.carbs }, Dairy: { bg: '#FFF7ED', text: colors.fat }, Beverages: { bg: '#F5F3FF', text: colors.purple }, Fruits: { bg: '#FDF2F8', text: colors.pink }, Supplements: { bg: '#FEF3C7', text: colors.yellow }, Other: { bg: '#F5F5F5', text: colors.textSecondary } };
   return (
     <>
       <div style={{ position: 'relative', marginBottom: 16 }}><Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }} /><input type="text" placeholder="Search ingredients..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '14px 14px 14px 46px', borderRadius: 14, border: '2px solid #F0F0F0', fontSize: 14, outline: 'none' }} /></div>
@@ -741,18 +791,22 @@ const InventoryTab = () => {
   );
 };
 
-const MyMealsTab = () => {
+const MyMealsTab = ({ data }) => {
   const [expanded, setExpanded] = useState(null);
+  
+  // Use passed data or fallback to hardcoded
+  const meals = data && data.length > 0 ? data : MY_MEALS;
+  
   return (
     <>
       <div style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 20 }}>Your favorite meal combos. Tap to expand.</div>
-      {MY_MEALS.map(meal => (
+      {meals.map(meal => (
         <div key={meal.id} onClick={() => setExpanded(expanded === meal.id ? null : meal.id)} style={{ background: colors.card, borderRadius: 18, padding: 18, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}`, cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 14 }}><div style={{ fontSize: 32 }}>{meal.emoji}</div><div><div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{meal.name}</div><div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>{meal.description}</div><MacroPills p={meal.totals.p} c={meal.totals.c} f={meal.totals.f} /></div></div>
-            <div style={{ textAlign: 'right' }}><div style={{ fontSize: 20, fontWeight: 800 }}>{meal.totals.cal}</div><div style={{ fontSize: 11, color: colors.textMuted }}>kcal</div></div>
+            <div style={{ display: 'flex', gap: 14 }}><div style={{ fontSize: 32 }}>{meal.emoji}</div><div><div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{meal.name}</div><div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>{meal.description}</div><MacroPills p={meal.totals?.p || 0} c={meal.totals?.c || 0} f={meal.totals?.f || 0} /></div></div>
+            <div style={{ textAlign: 'right' }}><div style={{ fontSize: 20, fontWeight: 800 }}>{meal.totals?.cal || 0}</div><div style={{ fontSize: 11, color: colors.textMuted }}>kcal</div></div>
           </div>
-          {expanded === meal.id && (<div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #F0F0F0' }}>{meal.items.map((item, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}><span>{item.name}</span><span style={{ color: colors.textMuted }}>{item.qty} · {item.cal} kcal</span></div>))}<button style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 12, border: 'none', background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Zap size={16} /> Quick Add</button></div>)}
+          {expanded === meal.id && (<div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #F0F0F0' }}>{(meal.items || []).map((item, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}><span>{item.name}</span><span style={{ color: colors.textMuted }}>{item.qty} · {item.cal} kcal</span></div>))}<button style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 12, border: 'none', background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Zap size={16} /> Quick Add</button></div>)}
         </div>
       ))}
     </>
@@ -767,8 +821,82 @@ export default function CutPhaseDashboard() {
   const [allData, setAllData] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date('2026-04-12'));
   const [showAddModal, setShowAddModal] = useState(false);
+  
+  // Google Sheets data state
+  const [sheetData, setSheetData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
 
-  useEffect(() => { setAllData(loadAllData()); }, []);
+  // Fetch data from Google Sheets on mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchAllData();
+        if (data && !data.error) {
+          setSheetData(data);
+          setIsConnected(true);
+          setLastSync(new Date());
+          console.log('✅ Connected to Google Sheets!', data);
+        } else {
+          console.log('⚠️ Using local fallback data');
+          setIsConnected(false);
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch from Google Sheets:', error);
+        setIsConnected(false);
+      }
+      setIsLoading(false);
+    };
+    
+    loadData();
+    setAllData(loadAllData());
+  }, []);
+
+  // Use Google Sheets data if available, otherwise use local constants
+  const inbodyData = sheetData?.inbody?.length > 0 
+    ? sheetData.inbody.map(row => ({
+        date: row.date,
+        weight: parseFloat(row.weight) || 0,
+        muscle: parseFloat(row.muscle) || 0,
+        fat: parseFloat(row.fat) || 0,
+        fatPct: parseFloat(row.fatPct) || 0,
+        bmr: parseInt(row.bmr) || 0,
+        score: parseInt(row.score) || 0,
+        protein: parseFloat(row.protein) || 0,
+        mineral: parseFloat(row.mineral) || 0,
+        visceralLevel: parseInt(row.visceralLevel) || 0,
+      })).sort((a, b) => new Date(a.date) - new Date(b.date))
+    : INBODY_HISTORY;
+
+  const inventoryData = sheetData?.inventory?.length > 0 
+    ? sheetData.inventory.map((item, idx) => ({
+        id: idx + 1,
+        name: item.name,
+        brand: item.brand || '-',
+        serving: item.serving,
+        cal: parseFloat(item.cal) || 0,
+        p: parseFloat(item.p) || 0,
+        c: parseFloat(item.c) || 0,
+        f: parseFloat(item.f) || 0,
+        category: item.category || 'Other',
+      }))
+    : INVENTORY;
+
+  const mealsData = sheetData?.myMeals?.length > 0 
+    ? sheetData.myMeals.map((meal, idx) => ({
+        id: idx + 1,
+        name: meal.name,
+        emoji: meal.emoji || '🍽️',
+        description: meal.description,
+        items: typeof meal.items === 'string' ? JSON.parse(meal.items) : meal.items,
+        totals: typeof meal.totals === 'string' ? JSON.parse(meal.totals) : meal.totals,
+        timesUsed: parseInt(meal.timesUsed) || 0,
+      }))
+    : MY_MEALS;
+
+  const foodLogData = sheetData?.foodLog || allData;
 
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: Flame },
@@ -776,6 +904,22 @@ export default function CutPhaseDashboard() {
     { id: 'inventory', label: 'Foods', icon: Package },
     { id: 'meals', label: 'Meals', icon: UtensilsCrossed },
   ];
+
+  // Refresh data from Google Sheets
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchAllData();
+      if (data && !data.error) {
+        setSheetData(data);
+        setIsConnected(true);
+        setLastSync(new Date());
+      }
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    }
+    setIsLoading(false);
+  };
 
   return (
     <div style={styles.page}>
@@ -785,18 +929,51 @@ export default function CutPhaseDashboard() {
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={styles.badge}>CUT PHASE</span><span style={{ fontSize: 13, color: colors.textSecondary }}>Abs visibility</span></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: colors.textSecondary }}><Calendar size={14} /><span>Apr 12</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={styles.badge}>CUT PHASE</span>
+              <span style={{ fontSize: 13, color: colors.textSecondary }}>Abs visibility</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Sync Status Indicator */}
+              <div 
+                onClick={handleRefresh}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 5, 
+                  fontSize: 10, 
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  background: isConnected ? '#F0FDF4' : '#FEF2F2',
+                  color: isConnected ? colors.primary : colors.danger,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                <div style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: isLoading ? colors.yellow : (isConnected ? colors.primary : colors.danger),
+                  animation: isLoading ? 'pulse 1s infinite' : 'none',
+                }}></div>
+                {isLoading ? 'Syncing...' : (isConnected ? 'Live' : 'Offline')}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: colors.textSecondary }}>
+                <Calendar size={14} />
+                <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              </div>
+            </div>
           </div>
           <div style={styles.tabs}>{tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ ...styles.tab, ...(activeTab === tab.id ? styles.tabActive : styles.tabInactive) }}><tab.icon size={14} />{tab.label}</button>))}</div>
         </div>
       </header>
 
       <main style={styles.main}>
-        {activeTab === 'dashboard' && <DashboardTab allData={allData} selectedDate={selectedDate} setSelectedDate={setSelectedDate} />}
-        {activeTab === 'inbody' && <InBodyTab />}
-        {activeTab === 'inventory' && <InventoryTab />}
-        {activeTab === 'meals' && <MyMealsTab />}
+        {activeTab === 'dashboard' && <DashboardTab allData={foodLogData} selectedDate={selectedDate} setSelectedDate={setSelectedDate} inbodyData={inbodyData} />}
+        {activeTab === 'inbody' && <InBodyTab data={inbodyData} />}
+        {activeTab === 'inventory' && <InventoryTab data={inventoryData} />}
+        {activeTab === 'meals' && <MyMealsTab data={mealsData} />}
       </main>
 
       <button onClick={() => setShowAddModal(true)} style={styles.fab}><Plus size={26} strokeWidth={2.5} /></button>
@@ -805,10 +982,18 @@ export default function CutPhaseDashboard() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddModal(false)}>
           <div style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '28px 28px 0 0', padding: 24, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}><h2 style={{ fontSize: 20, fontWeight: 700 }}>Log Food</h2><button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, cursor: 'pointer' }}><X size={18} color="#888" /></button></div>
-            {MY_MEALS.map(meal => (<div key={meal.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 14, borderRadius: 14, background: '#F0FDF4', marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(34,197,94,0.2)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 24 }}>{meal.emoji}</span><div><div style={{ fontSize: 14, fontWeight: 600 }}>{meal.name}</div><div style={{ fontSize: 12, color: colors.textSecondary }}>{meal.totals.cal} kcal</div></div></div><ChevronRight size={18} color={colors.primary} /></div>))}
+            {mealsData.map(meal => (<div key={meal.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 14, borderRadius: 14, background: '#F0FDF4', marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(34,197,94,0.2)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 24 }}>{meal.emoji}</span><div><div style={{ fontSize: 14, fontWeight: 600 }}>{meal.name}</div><div style={{ fontSize: 12, color: colors.textSecondary }}>{meal.totals?.cal || 0} kcal</div></div></div><ChevronRight size={18} color={colors.primary} /></div>))}
           </div>
         </div>
       )}
+      
+      {/* Pulse animation for loading indicator */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 }
