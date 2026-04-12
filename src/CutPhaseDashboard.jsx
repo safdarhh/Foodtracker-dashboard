@@ -243,12 +243,11 @@ MACRO REFERENCE (per unit):
     setIsLoading(true);
     
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Call our serverless API route (keeps API key secret)
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 500,
           system: buildSystemPrompt(),
           messages: [...messages.filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0), userMessage].map(m => ({
             role: m.role,
@@ -258,14 +257,21 @@ MACRO REFERENCE (per unit):
       });
       
       const data = await response.json();
-      const assistantMessage = data.content?.[0]?.text || "Sorry, I couldn't process that. Try again?";
       
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+      if (data.error) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `⚠️ ${data.error}. Check that your API key is set in Vercel.` 
+        }]);
+      } else {
+        const assistantMessage = data.content?.[0]?.text || "Sorry, I couldn't process that. Try again?";
+        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+      }
     } catch (error) {
       console.error('AI Coach error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "Connection error. Make sure you're online and try again." 
+        content: "Connection error. Make sure you're online and the API is configured." 
       }]);
     }
     
@@ -487,6 +493,308 @@ MACRO REFERENCE (per unit):
           to { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
+  );
+};
+
+// ============================================
+// SMART SUGGESTIONS COMPONENT
+// ============================================
+const SmartSuggestions = ({ remaining, inventory, targets }) => {
+  // Generate smart meal suggestions based on remaining macros
+  const generateSuggestions = () => {
+    const suggestions = [];
+    const foods = inventory || INVENTORY;
+    
+    // If we've already hit targets or are over, show different message
+    if (remaining.p <= 0 && remaining.cal <= 0) {
+      return [{ type: 'complete', message: "You've hit your targets for today! 💪" }];
+    }
+    
+    // Priority: Hit protein first (most important for cut phase)
+    const proteinFoods = foods.filter(f => f.p >= 6).sort((a, b) => (b.p / b.cal) - (a.p / a.cal));
+    
+    // Suggestion 1: High protein combo
+    if (remaining.p > 20 && remaining.cal > 300) {
+      const chicken = foods.find(f => f.name.toLowerCase().includes('chicken'));
+      const eggs = foods.find(f => f.name.toLowerCase().includes('egg'));
+      
+      if (chicken && eggs) {
+        // Calculate optimal amounts
+        const chickenAmount = Math.min(Math.floor(remaining.cal / 2 / chicken.cal * 100), 200);
+        const chickenP = Math.round(chicken.p * chickenAmount / 100);
+        const chickenCal = Math.round(chicken.cal * chickenAmount / 100);
+        
+        const remainingProteinAfterChicken = remaining.p - chickenP;
+        const eggCount = Math.max(2, Math.min(Math.ceil(remainingProteinAfterChicken / eggs.p), 6));
+        const eggP = eggCount * eggs.p;
+        const eggCal = eggCount * eggs.cal;
+        
+        const totalP = chickenP + eggP;
+        const totalCal = chickenCal + eggCal;
+        const totalC = Math.round(eggCount * eggs.c);
+        const totalF = Math.round((chicken.f * chickenAmount / 100) + (eggCount * eggs.f));
+        
+        if (totalCal <= remaining.cal + 100) {
+          suggestions.push({
+            type: 'combo',
+            title: '💪 Protein Power',
+            items: [
+              { name: 'Chicken', qty: `${chickenAmount}g`, p: chickenP, cal: chickenCal },
+              { name: 'Eggs', qty: `${eggCount}`, p: eggP, cal: eggCal },
+            ],
+            totals: { cal: totalCal, p: totalP, c: totalC, f: totalF },
+            insight: `Hits ${Math.round(totalP / targets.protein * 100)}% of daily protein`,
+            proteinGap: remaining.p - totalP,
+          });
+        }
+      }
+    }
+    
+    // Suggestion 2: Quick protein (shake or eggs)
+    if (remaining.p > 15) {
+      const whey = foods.find(f => f.name.toLowerCase().includes('whey'));
+      const milk = foods.find(f => f.name.toLowerCase().includes('milk'));
+      const banana = foods.find(f => f.name.toLowerCase().includes('banana'));
+      
+      if (whey && milk) {
+        const totalP = whey.p + milk.p + (banana ? 1 : 0);
+        const totalCal = whey.cal + milk.cal + (banana ? 89 : 0);
+        
+        suggestions.push({
+          type: 'quick',
+          title: '⚡ Quick Shake',
+          items: [
+            { name: 'Whey Protein', qty: '1 scoop', p: whey.p, cal: whey.cal },
+            { name: 'Milk', qty: '250ml', p: milk.p, cal: milk.cal },
+            ...(banana ? [{ name: 'Banana', qty: '1', p: 1, cal: 89 }] : []),
+          ],
+          totals: { cal: totalCal, p: totalP, c: banana ? 38 : 15, f: 10 },
+          insight: `Quick ${totalP}g protein in 2 minutes`,
+          proteinGap: remaining.p - totalP,
+        });
+      }
+    }
+    
+    // Suggestion 3: Balanced meal with carbs
+    if (remaining.c > 30 && remaining.cal > 400) {
+      const rice = foods.find(f => f.name.toLowerCase().includes('rice'));
+      const chicken = foods.find(f => f.name.toLowerCase().includes('chicken'));
+      const yogurt = foods.find(f => f.name.toLowerCase().includes('yogurt'));
+      
+      if (rice && chicken) {
+        const riceAmount = Math.min(150, Math.floor(remaining.c / rice.c * 100));
+        const chickenAmount = 150;
+        
+        const riceCal = Math.round(rice.cal * riceAmount / 100);
+        const riceC = Math.round(rice.c * riceAmount / 100);
+        const riceP = Math.round(rice.p * riceAmount / 100);
+        
+        const chickenCal = Math.round(chicken.cal * chickenAmount / 100);
+        const chickenP = Math.round(chicken.p * chickenAmount / 100);
+        
+        const yogurtCal = yogurt ? yogurt.cal : 0;
+        const yogurtP = yogurt ? yogurt.p : 0;
+        
+        const totalCal = riceCal + chickenCal + yogurtCal;
+        const totalP = riceP + chickenP + yogurtP;
+        const totalC = riceC + (yogurt ? yogurt.c : 0);
+        
+        suggestions.push({
+          type: 'balanced',
+          title: '🍱 Balanced Meal',
+          items: [
+            { name: 'Rice', qty: `${riceAmount}g`, p: riceP, cal: riceCal },
+            { name: 'Chicken', qty: `${chickenAmount}g`, p: chickenP, cal: chickenCal },
+            ...(yogurt ? [{ name: 'Greek Yogurt', qty: '100g', p: yogurtP, cal: yogurtCal }] : []),
+          ],
+          totals: { cal: totalCal, p: totalP, c: totalC, f: Math.round(chicken.f * 1.5) },
+          insight: `Good balance of protein & carbs for recovery`,
+          proteinGap: remaining.p - totalP,
+        });
+      }
+    }
+    
+    // If no suggestions generated, give simple options
+    if (suggestions.length === 0 && remaining.p > 0) {
+      const eggs = foods.find(f => f.name.toLowerCase().includes('egg'));
+      if (eggs) {
+        const eggCount = Math.ceil(remaining.p / eggs.p);
+        suggestions.push({
+          type: 'simple',
+          title: '🥚 Simple Option',
+          items: [{ name: 'Eggs', qty: `${eggCount}`, p: eggCount * eggs.p, cal: eggCount * eggs.cal }],
+          totals: { cal: eggCount * eggs.cal, p: eggCount * eggs.p, c: eggCount * 0.5, f: eggCount * 5 },
+          insight: `${eggCount} eggs to close the protein gap`,
+          proteinGap: remaining.p - (eggCount * eggs.p),
+        });
+      }
+    }
+    
+    return suggestions.slice(0, 3); // Max 3 suggestions
+  };
+  
+  const suggestions = generateSuggestions();
+  
+  // Don't render if no remaining macros needed
+  if (remaining.cal <= 0 && remaining.p <= 0) {
+    return (
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #D1FAE5, #A7F3D0)' }}>
+            <Check size={16} color={colors.primary} />
+          </div>
+          <span style={styles.cardTitle}>Targets Complete!</span>
+        </div>
+        <div style={{ textAlign: 'center', padding: 20 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: colors.primary }}>You've hit your macros today!</div>
+          <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 8 }}>Great discipline. Keep it up tomorrow.</div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={styles.divider}>
+        <div style={styles.dividerLine}></div>
+        <span style={styles.dividerText}>Smart Suggestions</span>
+        <div style={styles.dividerLine}></div>
+      </div>
+      
+      {/* Remaining Summary */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', 
+        borderRadius: 16, 
+        padding: 16, 
+        marginBottom: 16,
+        border: '1px solid #FCD34D',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Target size={16} color="#D97706" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>Still Need Today</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#92400E' }}>{Math.max(0, Math.round(remaining.cal))}</div>
+            <div style={{ fontSize: 10, color: '#B45309' }}>kcal</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: colors.protein }}>{Math.max(0, Math.round(remaining.p))}g</div>
+            <div style={{ fontSize: 10, color: '#B45309' }}>protein</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: colors.carbs }}>{Math.max(0, Math.round(remaining.c))}g</div>
+            <div style={{ fontSize: 10, color: '#B45309' }}>carbs</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: colors.fat }}>{Math.max(0, Math.round(remaining.f))}g</div>
+            <div style={{ fontSize: 10, color: '#B45309' }}>fat</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Suggestions */}
+      {suggestions.map((suggestion, idx) => (
+        <div key={idx} style={{
+          background: colors.card,
+          borderRadius: 18,
+          padding: 18,
+          marginBottom: 12,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+          border: `1px solid ${colors.border}`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{suggestion.title}</div>
+            <div style={{ 
+              background: '#F0FDF4', 
+              padding: '4px 10px', 
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              color: colors.primary,
+            }}>
+              {suggestion.totals.cal} kcal
+            </div>
+          </div>
+          
+          {/* Items */}
+          <div style={{ marginBottom: 14 }}>
+            {suggestion.items.map((item, i) => (
+              <div key={i} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                padding: '8px 0',
+                borderBottom: i < suggestion.items.length - 1 ? '1px solid #F5F5F5' : 'none',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>{item.name}</span>
+                  <span style={{ fontSize: 12, color: colors.textMuted }}>({item.qty})</span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: colors.protein }}>
+                  {item.p}g P
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Totals */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            background: '#FAFAFA',
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 12,
+          }}>
+            <MacroPills p={suggestion.totals.p} c={suggestion.totals.c} f={suggestion.totals.f} />
+            <div style={{ fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>
+              Total: {suggestion.totals.cal} kcal
+            </div>
+          </div>
+          
+          {/* Insight */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: 12,
+            background: 'linear-gradient(135deg, #EEF2FF, #E0E7FF)',
+            borderRadius: 10,
+          }}>
+            <Sparkles size={14} color="#6366F1" />
+            <span style={{ fontSize: 12, color: '#4338CA', fontWeight: 500 }}>
+              {suggestion.insight}
+            </span>
+          </div>
+          
+          {/* After eating this */}
+          {suggestion.proteinGap !== undefined && (
+            <div style={{ 
+              marginTop: 10, 
+              fontSize: 11, 
+              color: suggestion.proteinGap <= 0 ? colors.primary : colors.textMuted,
+              textAlign: 'center',
+            }}>
+              {suggestion.proteinGap <= 0 
+                ? '✓ This hits your protein target!' 
+                : `After this: ${Math.round(suggestion.proteinGap)}g protein still needed`
+              }
+            </div>
+          )}
+        </div>
+      ))}
+      
+      {/* Footer note */}
+      <div style={{ 
+        textAlign: 'center', 
+        fontSize: 11, 
+        color: colors.textMuted,
+        padding: '8px 0 20px',
+      }}>
+        💡 Suggestions based on your inventory & remaining macros
+      </div>
     </div>
   );
 };
@@ -1040,12 +1348,20 @@ const InBodyTab = ({ data }) => {
 // ============================================
 // OTHER TABS (Simplified for brevity)
 // ============================================
-const DashboardTab = ({ allData, selectedDate, setSelectedDate, inbodyData }) => {
+const DashboardTab = ({ allData, selectedDate, setSelectedDate, inbodyData, inventoryData }) => {
   const dateKey = formatDateKey(selectedDate);
   const dayData = getDayData(allData, dateKey);
   const meals = dayData.meals || [];
   const dayNumber = getDayNumber(selectedDate);
   const totals = meals.reduce((acc, meal) => { (meal.items || []).forEach(item => { acc.cal += item.cal || 0; acc.p += item.p || 0; acc.c += item.c || 0; acc.f += item.f || 0; }); return acc; }, { cal: 0, p: 0, c: 0, f: 0 });
+  
+  // Calculate remaining macros for Smart Suggestions
+  const remaining = {
+    cal: TARGETS.calories - totals.cal,
+    p: TARGETS.protein - totals.p,
+    c: TARGETS.carbs - totals.c,
+    f: TARGETS.fat - totals.f,
+  };
   
   // Use passed inbody data or fallback
   const inbody = inbodyData && inbodyData.length > 0 ? inbodyData : INBODY_HISTORY;
@@ -1098,6 +1414,13 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inbodyData }) =>
           <MealCard meal={meals.find(m => m.slot === 'dinner')} icon={Moon} iconBg="linear-gradient(135deg, #A78BFA, #8B5CF6)" title="Dinner" />
         </>
       )}
+      
+      {/* Smart Suggestions based on remaining macros */}
+      <SmartSuggestions 
+        remaining={remaining} 
+        inventory={inventoryData} 
+        targets={TARGETS} 
+      />
     </>
   );
 };
@@ -1312,7 +1635,7 @@ export default function CutPhaseDashboard() {
       </header>
 
       <main style={styles.main}>
-        {activeTab === 'dashboard' && <DashboardTab allData={foodLogData} selectedDate={selectedDate} setSelectedDate={setSelectedDate} inbodyData={inbodyData} />}
+        {activeTab === 'dashboard' && <DashboardTab allData={foodLogData} selectedDate={selectedDate} setSelectedDate={setSelectedDate} inbodyData={inbodyData} inventoryData={inventoryData} />}
         {activeTab === 'inbody' && <InBodyTab data={inbodyData} />}
         {activeTab === 'inventory' && <InventoryTab data={inventoryData} />}
         {activeTab === 'meals' && <MyMealsTab data={mealsData} />}
@@ -1320,7 +1643,7 @@ export default function CutPhaseDashboard() {
 
       <button onClick={() => setShowAddModal(true)} style={styles.fab}><Plus size={26} strokeWidth={2.5} /></button>
       
-      {/* AI Coach Button */}
+      {/* AI Coach Button (Work in Progress) */}
       <button 
         onClick={() => setShowAICoach(true)} 
         style={{
