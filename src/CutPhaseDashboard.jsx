@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Coffee, Sun, Moon, Sparkles, X, Search, Check, Calendar, Target, Flame, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Package, UtensilsCrossed, Zap, Activity, Upload, Edit3, ArrowUpRight, ArrowDownRight, Minus, Award, Scale, Dumbbell, Percent, Heart, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Coffee, Sun, Moon, Sparkles, X, Search, Check, Calendar, Target, Flame, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Package, UtensilsCrossed, Zap, Activity, Upload, Edit3, ArrowUpRight, ArrowDownRight, Minus, Award, Scale, Dumbbell, Percent, Heart, BarChart3, MessageCircle, Send, Bot, User, Loader } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid, BarChart, Bar, ComposedChart } from 'recharts';
 
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbzJbxTQY_I6zpuR0oBP5tNhRqSNSDYKVYWc_1yIZlqFjoiv3WsbIWfLAwhmSdte1us/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxzGucQBF_ojqHdKuqERq6puFjxne4D51ahL62m6lJp73hQqjdDg1FdcA_UIyOdfgw/exec';
 const TARGETS = { calories: 1800, protein: 160, carbs: 130, fat: 55 };
 const TARGET_BF = { min: 10, max: 12 }; // Abs visibility target
 
@@ -154,6 +154,342 @@ const getDayNumber = (date) => { const startDate = new Date('2026-04-10'); retur
 const STORAGE_KEY = 'cutPhaseTracker';
 const loadAllData = () => { try { const s = localStorage.getItem(STORAGE_KEY); if (s) return JSON.parse(s); } catch (e) {} return SEED_DATA; };
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
+
+// ============================================
+// AI COACH COMPONENT
+// ============================================
+const AICoach = ({ isOpen, onClose, inventory, todayMeals, targets }) => {
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: "Hey! I'm your meal coach. Tell me what you have and I'll help you hit your macros. Try: \"I have 100g chicken, how many eggs to hit protein?\"" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+  
+  // Calculate today's progress
+  const todayTotals = (todayMeals || []).reduce((acc, meal) => {
+    (meal.items || []).forEach(item => {
+      acc.cal += item.cal || 0;
+      acc.p += item.p || 0;
+      acc.c += item.c || 0;
+      acc.f += item.f || 0;
+    });
+    return acc;
+  }, { cal: 0, p: 0, c: 0, f: 0 });
+  
+  const remaining = {
+    cal: targets.calories - todayTotals.cal,
+    p: targets.protein - todayTotals.p,
+    c: targets.carbs - todayTotals.c,
+    f: targets.fat - todayTotals.f,
+  };
+  
+  // Build context for AI
+  const buildSystemPrompt = () => {
+    const inventoryList = (inventory || INVENTORY).map(i => 
+      `- ${i.name}: ${i.cal} kcal, P${i.p}g, C${i.c}g, F${i.f}g per ${i.serving}`
+    ).join('\n');
+    
+    return `You are Safdar's cut phase meal coach. Be concise, friendly, and direct.
+
+SAFDAR'S TARGETS (Daily):
+- Calories: ${targets.calories} kcal
+- Protein: ${targets.protein}g (most important!)
+- Carbs: ${targets.carbs}g
+- Fat: ${targets.fat}g
+
+TODAY'S PROGRESS:
+- Eaten: ${Math.round(todayTotals.cal)} kcal | P${Math.round(todayTotals.p)}g | C${Math.round(todayTotals.c)}g | F${Math.round(todayTotals.f)}g
+- Remaining: ${Math.round(remaining.cal)} kcal | P${Math.round(remaining.p)}g | C${Math.round(remaining.c)}g | F${Math.round(remaining.f)}g
+
+SAFDAR'S FOOD INVENTORY (what he has available):
+${inventoryList}
+
+RULES:
+1. Always do the math for him - show exact calculations
+2. Suggest specific quantities (e.g., "Add 4 eggs" not "add some eggs")
+3. Prioritize hitting protein target - it's a cut phase
+4. Only suggest foods from his inventory
+5. Keep responses short and actionable
+6. Use simple formatting with line breaks, avoid markdown
+7. If he mentions a food amount, calculate macros for that amount
+8. Always show the final macro totals for suggested meals
+
+MACRO REFERENCE (per unit):
+- Eggs: 72 kcal, 6g protein, 0.5g carbs, 5g fat per egg
+- Chicken: 165 kcal, 31g protein, 0g carbs, 4g fat per 100g
+- Rice: 130 kcal, 3g protein, 28g carbs, 0.3g fat per 100g
+- Chapati: 108 kcal, 3g protein, 20g carbs, 2g fat per piece
+- Greek Yogurt: 78 kcal, 8g protein, 7g carbs, 2g fat per 100g
+- Whey (NakPro): 130 kcal, 25g protein, 3g carbs, 2g fat per scoop
+- Banana: 89 kcal, 1g protein, 23g carbs, 0g fat per 100g
+- Milk: 150 kcal, 8g protein, 12g carbs, 8g fat per 250ml`;
+  };
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+  
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    const userMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 500,
+          system: buildSystemPrompt(),
+          messages: [...messages.filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0), userMessage].map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        })
+      });
+      
+      const data = await response.json();
+      const assistantMessage = data.content?.[0]?.text || "Sorry, I couldn't process that. Try again?";
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+    } catch (error) {
+      console.error('AI Coach error:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "Connection error. Make sure you're online and try again." 
+      }]);
+    }
+    
+    setIsLoading(false);
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 200,
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'rgba(0,0,0,0.5)',
+      backdropFilter: 'blur(4px)',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+        padding: '16px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Bot size={22} color="white" />
+          </div>
+          <div>
+            <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>AI Meal Coach</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+              {Math.round(remaining.p)}g protein remaining today
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'rgba(255,255,255,0.2)',
+            border: 'none',
+            borderRadius: 10,
+            width: 36,
+            height: 36,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <X size={20} color="white" />
+        </button>
+      </div>
+      
+      {/* Quick Stats Bar */}
+      <div style={{
+        background: '#F5F3FF',
+        padding: '12px 20px',
+        display: 'flex',
+        justifyContent: 'space-around',
+        borderBottom: '1px solid #E9E5FF',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: colors.primary }}>{Math.round(remaining.cal)}</div>
+          <div style={{ fontSize: 10, color: colors.textMuted }}>kcal left</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: colors.protein }}>{Math.round(remaining.p)}g</div>
+          <div style={{ fontSize: 10, color: colors.textMuted }}>protein</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: colors.carbs }}>{Math.round(remaining.c)}g</div>
+          <div style={{ fontSize: 10, color: colors.textMuted }}>carbs</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: colors.fat }}>{Math.round(remaining.f)}g</div>
+          <div style={{ fontSize: 10, color: colors.textMuted }}>fat</div>
+        </div>
+      </div>
+      
+      {/* Messages */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: 20,
+        background: '#FAFAFA',
+      }}>
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: 'flex',
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              marginBottom: 12,
+            }}
+          >
+            <div style={{
+              maxWidth: '85%',
+              padding: '12px 16px',
+              borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+              background: msg.role === 'user' ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)' : 'white',
+              color: msg.role === 'user' ? 'white' : colors.textPrimary,
+              fontSize: 14,
+              lineHeight: 1.5,
+              boxShadow: msg.role === 'user' ? 'none' : '0 2px 8px rgba(0,0,0,0.06)',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        
+        {isLoading && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '18px 18px 18px 4px',
+              background: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <Loader size={16} color={colors.purple} style={{ animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: 14, color: colors.textMuted }}>Thinking...</span>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+      
+      {/* Quick Prompts */}
+      <div style={{
+        padding: '8px 20px',
+        background: 'white',
+        borderTop: '1px solid #F0F0F0',
+        display: 'flex',
+        gap: 8,
+        overflowX: 'auto',
+      }}>
+        {[
+          "What should I eat for dinner?",
+          "I have 150g chicken",
+          "Quick protein options?",
+        ].map((prompt, idx) => (
+          <button
+            key={idx}
+            onClick={() => setInput(prompt)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 20,
+              border: '1px solid #E5E5E5',
+              background: 'white',
+              fontSize: 12,
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+      
+      {/* Input */}
+      <div style={{
+        padding: '12px 20px 24px',
+        background: 'white',
+        display: 'flex',
+        gap: 12,
+      }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder="Ask about your meals..."
+          style={{
+            flex: 1,
+            padding: '14px 18px',
+            borderRadius: 24,
+            border: '2px solid #E5E5E5',
+            fontSize: 15,
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={isLoading || !input.trim()}
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            border: 'none',
+            background: input.trim() ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)' : '#E5E5E5',
+            cursor: input.trim() ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Send size={20} color="white" />
+        </button>
+      </div>
+      
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 // ============================================
 // REUSABLE COMPONENTS
@@ -821,6 +1157,7 @@ export default function CutPhaseDashboard() {
   const [allData, setAllData] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date('2026-04-12'));
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAICoach, setShowAICoach] = useState(false);
   
   // Google Sheets data state
   const [sheetData, setSheetData] = useState(null);
@@ -897,6 +1234,11 @@ export default function CutPhaseDashboard() {
     : MY_MEALS;
 
   const foodLogData = sheetData?.foodLog || allData;
+
+  // Get today's meals for AI Coach
+  const todayKey = formatDateKey(selectedDate);
+  const todayDayData = getDayData(foodLogData, todayKey);
+  const todayMeals = todayDayData.meals || [];
 
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: Flame },
@@ -977,6 +1319,38 @@ export default function CutPhaseDashboard() {
       </main>
 
       <button onClick={() => setShowAddModal(true)} style={styles.fab}><Plus size={26} strokeWidth={2.5} /></button>
+      
+      {/* AI Coach Button */}
+      <button 
+        onClick={() => setShowAICoach(true)} 
+        style={{
+          position: 'fixed',
+          bottom: 28,
+          left: 28,
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: 'none',
+          cursor: 'pointer',
+          boxShadow: '0 8px 32px rgba(139,92,246,0.4)',
+        }}
+      >
+        <Bot size={26} strokeWidth={2} />
+      </button>
+      
+      {/* AI Coach Panel */}
+      <AICoach 
+        isOpen={showAICoach} 
+        onClose={() => setShowAICoach(false)}
+        inventory={inventoryData}
+        todayMeals={todayMeals}
+        targets={TARGETS}
+      />
 
       {showAddModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddModal(false)}>
