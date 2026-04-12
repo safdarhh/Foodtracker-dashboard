@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart,
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxzGucQBF_ojqHdKuqERq6puFjxne4D51ahL62m6lJp73hQqjdDg1FdcA_UIyOdfgw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzJbxTQY_I6zpuR0oBP5tNhRqSNSDYKVYWc_1yIZlqFjoiv3WsbIWfLAwhmSdte1us/exec';
 const TARGETS = { calories: 1800, protein: 160, carbs: 130, fat: 55 };
 const TARGET_BF = { min: 10, max: 12 }; // Abs visibility target
 
