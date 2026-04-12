@@ -1,16 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Coffee, Sun, Moon, Sparkles, X, Search, Check, Calendar, Target, Flame, TrendingDown, ChevronLeft, ChevronRight, History, Package, UtensilsCrossed, Zap, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Plus, Coffee, Sun, Moon, Sparkles, X, Search, Check, Calendar, Target, Flame, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Package, UtensilsCrossed, Zap, Activity, Upload, Edit3, ArrowUpRight, ArrowDownRight, Minus, Award, Scale, Dumbbell, Percent, Heart, BarChart3 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid, BarChart, Bar, ComposedChart } from 'recharts';
 
 // ============================================
 // CONFIGURATION
 // ============================================
 const TARGETS = { calories: 1800, protein: 160, carbs: 130, fat: 55 };
+const TARGET_BF = { min: 10, max: 12 }; // Abs visibility target
 
-const INBODY = {
-  weight: 79.3, muscle: 38.5, fat: 12.7, fatPct: 16.0, score: 84
-};
+// ============================================
+// INBODY DATA (Parsed from CSV - 31 measurements)
+// ============================================
+const INBODY_HISTORY = [
+  { date: '2024-02-26', weight: 74.1, muscle: 36.0, fat: 11.4, fatPct: 15.4, bmr: 1725, score: 80, protein: 4.15, mineral: 3.42, rightArm: 3.72, leftArm: 3.63, trunk: 28.7, rightLeg: 9.71, leftLeg: 9.63, visceralLevel: 4, whr: 0.91 },
+  { date: '2024-03-03', weight: 73.6, muscle: 36.5, fat: 10.4, fatPct: 14.1, bmr: 1736, score: 81, protein: 4.26, mineral: 3.49, rightArm: 3.68, leftArm: 3.60, trunk: 28.6, rightLeg: 9.86, leftLeg: 9.82, visceralLevel: 3, whr: 0.89 },
+  { date: '2024-05-24', weight: 76.6, muscle: 38.4, fat: 10.1, fatPct: 13.1, bmr: 1807, score: 84, protein: 4.40, mineral: 3.61, rightArm: 3.97, leftArm: 3.92, trunk: 30.2, rightLeg: 10.06, leftLeg: 10.01, visceralLevel: 3, whr: 0.89 },
+  { date: '2024-07-27', weight: 75.8, muscle: 37.1, fat: 11.5, fatPct: 15.1, bmr: 1760, score: 82, protein: 4.28, mineral: 3.55, rightArm: 3.69, leftArm: 3.69, trunk: 28.9, rightLeg: 10.05, leftLeg: 9.88, visceralLevel: 4, whr: 0.89 },
+  { date: '2024-07-27', weight: 74.9, muscle: 37.8, fat: 9.5, fatPct: 12.7, bmr: 1782, score: 83, protein: 4.38, mineral: 3.52, rightArm: 3.86, leftArm: 3.87, trunk: 29.8, rightLeg: 10.13, leftLeg: 9.98, visceralLevel: 3, whr: 0.89 },
+  { date: '2024-08-31', weight: 73.0, muscle: 35.7, fat: 10.9, fatPct: 14.9, bmr: 1712, score: 81, protein: 4.15, mineral: 3.42, rightArm: 3.61, leftArm: 3.57, trunk: 28.2, rightLeg: 9.57, leftLeg: 9.48, visceralLevel: 4, whr: 0.90 },
+  { date: '2024-11-04', weight: 75.4, muscle: 37.6, fat: 10.1, fatPct: 13.4, bmr: 1780, score: 83, protein: 4.28, mineral: 3.52, rightArm: 3.91, leftArm: 3.87, trunk: 29.9, rightLeg: 9.97, leftLeg: 9.99, visceralLevel: 3, whr: 0.89 },
+  { date: '2024-11-09', weight: 74.7, muscle: 37.6, fat: 9.5, fatPct: 12.7, bmr: 1779, score: 85, protein: 4.28, mineral: 3.52, rightArm: 3.90, leftArm: 3.93, trunk: 29.8, rightLeg: 9.60, leftLeg: 9.55, visceralLevel: 3, whr: 0.89 },
+  { date: '2024-11-13', weight: 75.9, muscle: 38.6, fat: 9.0, fatPct: 11.8, bmr: 1816, score: 85, protein: 4.30, mineral: 3.56, rightArm: 4.10, leftArm: 4.14, trunk: 31.0, rightLeg: 10.00, leftLeg: 9.94, visceralLevel: 3, whr: 0.90 },
+  { date: '2024-11-18', weight: 74.5, muscle: 35.2, fat: 12.9, fatPct: 17.3, bmr: 1701, score: 79, protein: 4.04, mineral: null, rightArm: 3.68, leftArm: 3.72, trunk: 28.8, rightLeg: 9.57, leftLeg: 9.51, visceralLevel: 5, whr: null },
+  { date: '2024-11-20', weight: 74.1, muscle: 37.6, fat: 9.1, fatPct: 12.3, bmr: 1774, score: 83, protein: 4.18, mineral: 3.45, rightArm: 3.88, leftArm: 3.92, trunk: 30.0, rightLeg: 10.01, leftLeg: 9.88, visceralLevel: 3, whr: 0.89 },
+  { date: '2025-04-14', weight: 74.0, muscle: 37.5, fat: 8.8, fatPct: 11.9, bmr: 1778, score: 83, protein: 4.29, mineral: 3.52, rightArm: 3.89, leftArm: 3.85, trunk: 29.7, rightLeg: 9.97, leftLeg: 9.86, visceralLevel: 3, whr: 0.87 },
+  { date: '2025-04-26', weight: 73.3, muscle: 37.5, fat: 8.2, fatPct: 11.2, bmr: 1776, score: 82, protein: 4.28, mineral: 3.48, rightArm: 3.96, leftArm: 3.92, trunk: 30.2, rightLeg: 10.03, leftLeg: 9.91, visceralLevel: 2, whr: 0.89 },
+  { date: '2025-05-02', weight: 74.2, muscle: 37.0, fat: 9.7, fatPct: 13.1, bmr: 1762, score: 83, protein: 4.38, mineral: 3.53, rightArm: 3.78, leftArm: 3.78, trunk: 29.2, rightLeg: 9.99, leftLeg: 9.92, visceralLevel: 3, whr: 0.88 },
+  { date: '2025-05-08', weight: 75.5, muscle: 38.0, fat: 9.2, fatPct: 12.1, bmr: 1803, score: 84, protein: 4.40, mineral: 3.69, rightArm: 3.81, leftArm: 3.77, trunk: 29.1, rightLeg: 10.40, leftLeg: 10.21, visceralLevel: 3, whr: 0.83 },
+  { date: '2025-05-30', weight: 76.3, muscle: 38.0, fat: 10.3, fatPct: 13.5, bmr: 1795, score: 84, protein: 4.39, mineral: 3.64, rightArm: 3.84, leftArm: 3.81, trunk: 29.5, rightLeg: 10.28, leftLeg: 10.21, visceralLevel: 3, whr: 0.86 },
+  { date: '2025-06-02', weight: 76.1, muscle: 38.3, fat: 9.5, fatPct: 12.5, bmr: 1808, score: 85, protein: 4.50, mineral: 3.68, rightArm: 3.91, leftArm: 3.86, trunk: 29.8, rightLeg: 10.19, leftLeg: 10.11, visceralLevel: 3, whr: 0.86 },
+  { date: '2025-06-15', weight: 75.4, muscle: 37.1, fat: 11.0, fatPct: 14.6, bmr: 1761, score: 82, protein: 4.27, mineral: 3.53, rightArm: 3.74, leftArm: 3.73, trunk: 29.1, rightLeg: 10.10, leftLeg: 10.00, visceralLevel: 4, whr: 0.88 },
+  { date: '2025-08-30', weight: 75.3, muscle: 37.2, fat: 10.8, fatPct: 14.3, bmr: 1764, score: 83, protein: 4.18, mineral: 3.40, rightArm: 3.95, leftArm: 3.93, trunk: 30.2, rightLeg: 9.85, leftLeg: 9.78, visceralLevel: 4, whr: 0.92 },
+  { date: '2025-09-07', weight: 76.2, muscle: 38.0, fat: 9.9, fatPct: 13.0, bmr: 1801, score: 84, protein: 4.30, mineral: 3.51, rightArm: 4.07, leftArm: 4.05, trunk: 30.7, rightLeg: 10.11, leftLeg: 9.93, visceralLevel: 4, whr: 0.90 },
+  { date: '2025-09-09', weight: 75.3, muscle: 36.0, fat: 12.0, fatPct: 16.0, bmr: 1737, score: 80, protein: 4.26, mineral: 3.46, rightArm: 3.61, leftArm: 3.56, trunk: 28.2, rightLeg: 10.49, leftLeg: 10.23, visceralLevel: 4, whr: 0.86 },
+  { date: '2025-09-25', weight: 76.9, muscle: 37.2, fat: 11.6, fatPct: 15.1, bmr: 1780, score: 83, protein: 4.39, mineral: 3.58, rightArm: 3.75, leftArm: 3.72, trunk: 29.0, rightLeg: 10.43, leftLeg: 10.30, visceralLevel: 4, whr: 0.86 },
+  { date: '2025-10-22', weight: 78.8, muscle: 38.0, fat: 12.5, fatPct: 15.9, bmr: 1802, score: 84, protein: 4.39, mineral: 3.55, rightArm: 4.04, leftArm: 4.01, trunk: 30.6, rightLeg: 10.20, leftLeg: 10.15, visceralLevel: 5, whr: 0.91 },
+  { date: '2025-10-27', weight: 78.5, muscle: 38.3, fat: 12.2, fatPct: 15.6, bmr: 1802, score: 84, protein: 4.40, mineral: 3.55, rightArm: 4.05, leftArm: 4.00, trunk: 30.6, rightLeg: 9.91, leftLeg: 9.80, visceralLevel: 5, whr: 0.94 },
+  { date: '2026-02-21', weight: 79.9, muscle: 39.0, fat: 12.6, fatPct: 15.7, bmr: 1824, score: 85, protein: 4.41, mineral: 3.64, rightArm: 4.07, leftArm: 4.00, trunk: 30.8, rightLeg: 9.94, leftLeg: 9.97, visceralLevel: 5, whr: 0.93 },
+  { date: '2026-03-01', weight: 80.1, muscle: 39.0, fat: 12.6, fatPct: 15.7, bmr: 1829, score: 85, protein: 4.52, mineral: 3.69, rightArm: 4.00, leftArm: 3.98, trunk: 30.5, rightLeg: 10.24, leftLeg: 10.22, visceralLevel: 5, whr: 0.90 },
+  { date: '2026-03-04', weight: 79.8, muscle: 38.0, fat: 13.8, fatPct: 17.3, bmr: 1796, score: 82, protein: 4.39, mineral: 3.66, rightArm: 3.87, leftArm: 3.80, trunk: 29.6, rightLeg: 10.21, leftLeg: 10.20, visceralLevel: 5, whr: 0.90 },
+  { date: '2026-03-05', weight: 81.3, muscle: 39.0, fat: 13.4, fatPct: 16.5, bmr: 1837, score: 85, protein: 4.42, mineral: 3.65, rightArm: 4.05, leftArm: 4.04, trunk: 30.6, rightLeg: 10.55, leftLeg: 10.62, visceralLevel: 5, whr: 0.89 },
+  { date: '2026-03-12', weight: 78.9, muscle: 39.1, fat: 11.2, fatPct: 14.2, bmr: 1831, score: 86, protein: 4.41, mineral: 3.59, rightArm: 4.18, leftArm: 4.18, trunk: 31.4, rightLeg: 9.95, leftLeg: 9.97, visceralLevel: 4, whr: 0.93 },
+  { date: '2026-03-23', weight: 79.8, muscle: 38.3, fat: 13.2, fatPct: 16.6, bmr: 1808, score: 83, protein: 4.40, mineral: 3.61, rightArm: 3.95, leftArm: 3.96, trunk: 30.3, rightLeg: 10.24, leftLeg: 10.23, visceralLevel: 5, whr: 0.91 },
+  { date: '2026-03-31', weight: 79.3, muscle: 38.5, fat: 12.7, fatPct: 16.0, bmr: 1808, score: 84, protein: 4.50, mineral: 3.67, rightArm: 3.86, leftArm: 3.87, trunk: 29.9, rightLeg: 10.14, leftLeg: 10.15, visceralLevel: 5, whr: 0.90 },
+].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-// Full Inventory - All ingredients used
 const INVENTORY = [
   { id: 1, name: 'Black Coffee', brand: '-', serving: '1 cup (250ml)', cal: 5, p: 0, c: 0, f: 0, category: 'Beverages' },
   { id: 2, name: 'Whole Wheat Chapati', brand: 'iD Fresh', serving: '1 pc (40g)', cal: 108, p: 3, c: 20, f: 2, category: 'Carbs' },
@@ -23,609 +57,702 @@ const INVENTORY = [
   { id: 9, name: 'NakPro Whey Gold', brand: 'NakPro', serving: '1 scoop (33g)', cal: 130, p: 25, c: 3, f: 2, category: 'Supplements' },
 ];
 
-// My Meals - Personalized meal combos
 const MY_MEALS = [
-  {
-    id: 1,
-    name: 'Power Lunch',
-    emoji: '💪',
-    description: '4 eggs + chicken + rice + yogurt',
-    items: [
-      { name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 },
-      { name: 'Chicken Boneless', qty: '150g', cal: 248, p: 47, c: 0, f: 6 },
-      { name: 'Rice (Basmati)', qty: '200g', cal: 260, p: 6, c: 56, f: 1 },
-      { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-    ],
-    totals: { cal: 874, p: 85, c: 65, f: 29 },
-    timesUsed: 3
-  },
-  {
-    id: 2,
-    name: 'Protein Shake',
-    emoji: '🥤',
-    description: 'Banana + milk + whey',
-    items: [
-      { name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 },
-      { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 },
-      { name: 'NakPro Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }
-    ],
-    totals: { cal: 348, p: 34, c: 32, f: 10 },
-    timesUsed: 2
-  },
-  {
-    id: 3,
-    name: 'Quick Breakfast',
-    emoji: '☕',
-    description: 'Just black coffee',
-    items: [
-      { name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }
-    ],
-    totals: { cal: 5, p: 0, c: 0, f: 0 },
-    timesUsed: 3
-  },
-  {
-    id: 4,
-    name: 'Heavy Dinner',
-    emoji: '🍗',
-    description: '200g chicken + rice + eggs + yogurt',
-    items: [
-      { name: 'Chicken Boneless', qty: '200g', cal: 330, p: 62, c: 0, f: 8 },
-      { name: 'Rice (Basmati)', qty: '200g', cal: 260, p: 6, c: 56, f: 1 },
-      { name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 },
-      { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-    ],
-    totals: { cal: 956, p: 100, c: 65, f: 31 },
-    timesUsed: 1
-  },
-  {
-    id: 5,
-    name: 'Roti Meal',
-    emoji: '🫓',
-    description: '2 chapati + 4 eggs omelette',
-    items: [
-      { name: 'iD Fresh Chapati', qty: '2 pcs', cal: 216, p: 6, c: 40, f: 4 },
-      { name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }
-    ],
-    totals: { cal: 504, p: 30, c: 42, f: 24 },
-    timesUsed: 1
-  },
-  {
-    id: 6,
-    name: 'Light Dinner',
-    emoji: '🌙',
-    description: 'Chicken + eggs + rice + yogurt',
-    items: [
-      { name: 'Chicken Boneless', qty: '133g', cal: 219, p: 41, c: 0, f: 5 },
-      { name: 'Eggs (Omelette)', qty: '2 eggs', cal: 144, p: 12, c: 1, f: 10 },
-      { name: 'Rice (Basmati)', qty: '104g', cal: 135, p: 3, c: 29, f: 0 },
-      { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-    ],
-    totals: { cal: 576, p: 64, c: 37, f: 17 },
-    timesUsed: 1
-  }
+  { id: 1, name: 'Power Lunch', emoji: '💪', description: '4 eggs + chicken + rice + yogurt', items: [{ name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }, { name: 'Chicken Boneless', qty: '150g', cal: 248, p: 47, c: 0, f: 6 }, { name: 'Rice (Basmati)', qty: '200g', cal: 260, p: 6, c: 56, f: 1 }, { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }], totals: { cal: 874, p: 85, c: 65, f: 29 }, timesUsed: 3 },
+  { id: 2, name: 'Protein Shake', emoji: '🥤', description: 'Banana + milk + whey', items: [{ name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 }, { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 }, { name: 'NakPro Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }], totals: { cal: 348, p: 34, c: 32, f: 10 }, timesUsed: 2 },
+  { id: 3, name: 'Quick Breakfast', emoji: '☕', description: 'Just black coffee', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }], totals: { cal: 5, p: 0, c: 0, f: 0 }, timesUsed: 3 },
+  { id: 4, name: 'Heavy Dinner', emoji: '🍗', description: '200g chicken + rice + eggs + yogurt', items: [{ name: 'Chicken Boneless', qty: '200g', cal: 330, p: 62, c: 0, f: 8 }, { name: 'Rice (Basmati)', qty: '200g', cal: 260, p: 6, c: 56, f: 1 }, { name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }, { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }], totals: { cal: 956, p: 100, c: 65, f: 31 }, timesUsed: 1 },
+  { id: 5, name: 'Roti Meal', emoji: '🫓', description: '2 chapati + 4 eggs omelette', items: [{ name: 'iD Fresh Chapati', qty: '2 pcs', cal: 216, p: 6, c: 40, f: 4 }, { name: 'Eggs (Omelette)', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }], totals: { cal: 504, p: 30, c: 42, f: 24 }, timesUsed: 1 },
+  { id: 6, name: 'Light Dinner', emoji: '🌙', description: 'Chicken + eggs + rice + yogurt', items: [{ name: 'Chicken Boneless', qty: '133g', cal: 219, p: 41, c: 0, f: 5 }, { name: 'Eggs (Omelette)', qty: '2 eggs', cal: 144, p: 12, c: 1, f: 10 }, { name: 'Rice (Basmati)', qty: '104g', cal: 135, p: 3, c: 29, f: 0 }, { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }], totals: { cal: 576, p: 64, c: 37, f: 17 }, timesUsed: 1 },
 ];
 
-// Historical data
 const SEED_DATA = {
-  '2026-04-10': {
-    meals: [
-      { slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] },
-      { slot: 'lunch', time: '13:00', items: [
-        { name: 'iD Fresh Chapati', qty: '2 pcs', cal: 216, p: 6, c: 40, f: 4 },
-        { name: 'Egg Omelette', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }
-      ]},
-      { slot: 'dinner', time: '20:00', items: [
-        { name: 'Rice', qty: '200g', cal: 260, p: 6, c: 56, f: 1 },
-        { name: 'Chicken', qty: '200g', cal: 330, p: 62, c: 0, f: 8 },
-        { name: 'Egg Omelette', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 },
-        { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-      ]}
-    ]
-  },
-  '2026-04-11': {
-    meals: [
-      { slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] },
-      { slot: 'lunch', time: '14:22', items: [
-        { name: 'Rice', qty: '210g', cal: 273, p: 6, c: 59, f: 1 },
-        { name: 'Chicken', qty: '150g', cal: 248, p: 47, c: 0, f: 6 },
-        { name: 'Egg Omelette', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 },
-        { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-      ]},
-      { slot: 'dinner', time: '20:00', items: [
-        { name: 'Chicken', qty: '133g', cal: 219, p: 41, c: 0, f: 5 },
-        { name: 'Egg Omelette', qty: '2 eggs', cal: 144, p: 12, c: 1, f: 10 },
-        { name: 'Rice', qty: '104g', cal: 135, p: 3, c: 29, f: 0 },
-        { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 },
-        { name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 },
-        { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 },
-        { name: 'NakPro Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }
-      ]}
-    ]
-  },
-  '2026-04-12': {
-    meals: [
-      { slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] },
-      { slot: 'lunch', time: '13:00', items: [
-        { name: 'Egg Omelette', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 },
-        { name: 'Chicken', qty: '150g', cal: 248, p: 47, c: 0, f: 6 },
-        { name: 'Rice', qty: '200g', cal: 260, p: 6, c: 56, f: 1 },
-        { name: 'Greek Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }
-      ]},
-      { slot: 'snack', time: '17:00', items: [
-        { name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 },
-        { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 },
-        { name: 'NakPro Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }
-      ]}
-    ]
-  }
+  '2026-04-10': { meals: [{ slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] }, { slot: 'lunch', time: '13:00', items: [{ name: 'Chapati', qty: '2 pcs', cal: 216, p: 6, c: 40, f: 4 }, { name: 'Eggs', qty: '4', cal: 288, p: 24, c: 2, f: 20 }] }, { slot: 'dinner', time: '20:00', items: [{ name: 'Rice', qty: '200g', cal: 260, p: 6, c: 56, f: 1 }, { name: 'Chicken', qty: '200g', cal: 330, p: 62, c: 0, f: 8 }, { name: 'Eggs', qty: '4', cal: 288, p: 24, c: 2, f: 20 }, { name: 'Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }] }] },
+  '2026-04-11': { meals: [{ slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] }, { slot: 'lunch', time: '14:22', items: [{ name: 'Rice', qty: '210g', cal: 273, p: 6, c: 59, f: 1 }, { name: 'Chicken', qty: '150g', cal: 248, p: 47, c: 0, f: 6 }, { name: 'Eggs', qty: '4', cal: 288, p: 24, c: 2, f: 20 }, { name: 'Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }] }, { slot: 'dinner', time: '20:00', items: [{ name: 'Chicken', qty: '133g', cal: 219, p: 41, c: 0, f: 5 }, { name: 'Eggs', qty: '2', cal: 144, p: 12, c: 1, f: 10 }, { name: 'Rice', qty: '104g', cal: 135, p: 3, c: 29, f: 0 }, { name: 'Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }, { name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 }, { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 }, { name: 'Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }] }] },
+  '2026-04-12': { meals: [{ slot: 'breakfast', time: '08:00', items: [{ name: 'Black Coffee', qty: '1 cup', cal: 5, p: 0, c: 0, f: 0 }] }, { slot: 'lunch', time: '13:00', items: [{ name: 'Eggs', qty: '4', cal: 288, p: 24, c: 2, f: 20 }, { name: 'Chicken', qty: '150g', cal: 248, p: 47, c: 0, f: 6 }, { name: 'Rice', qty: '200g', cal: 260, p: 6, c: 56, f: 1 }, { name: 'Yogurt', qty: '100g', cal: 78, p: 8, c: 7, f: 2 }] }, { slot: 'snack', time: '17:00', items: [{ name: 'Banana', qty: '76g', cal: 68, p: 1, c: 17, f: 0 }, { name: 'Milk', qty: '250ml', cal: 150, p: 8, c: 12, f: 8 }, { name: 'Whey', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }] }] }
+};
+
+// ============================================
+// COLORS & STYLES
+// ============================================
+const colors = {
+  primary: '#22C55E', protein: '#22C55E', carbs: '#3B82F6', fat: '#F97316',
+  danger: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', yellow: '#F59E0B',
+  teal: '#14B8A6', indigo: '#6366F1',
+  bg: '#F8F8F6', card: '#FFFFFF', border: 'rgba(0,0,0,0.04)',
+  textPrimary: '#1a1a1a', textSecondary: '#888', textMuted: '#AAA',
+};
+
+const styles = {
+  page: { minHeight: '100vh', background: colors.bg, paddingBottom: 100 },
+  header: { position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.06)' },
+  headerInner: { maxWidth: 480, margin: '0 auto', padding: '14px 20px' },
+  badge: { background: `linear-gradient(135deg, ${colors.danger}, #DC2626)`, color: 'white', fontSize: 10, fontWeight: 700, padding: '6px 12px', borderRadius: 6, letterSpacing: 0.8, textTransform: 'uppercase' },
+  tabs: { display: 'flex', gap: 4, background: '#F0F0EE', borderRadius: 12, padding: 4 },
+  tab: { flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, transition: 'all 0.2s' },
+  tabActive: { background: 'white', color: colors.textPrimary, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
+  tabInactive: { background: 'transparent', color: colors.textSecondary },
+  main: { maxWidth: 480, margin: '0 auto', padding: '20px' },
+  card: { background: colors.card, borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}` },
+  cardHeader: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 },
+  cardIcon: { width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: 600, color: colors.textPrimary, letterSpacing: -0.3 },
+  divider: { display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0 16px' },
+  dividerLine: { flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #E5E5E5, transparent)' },
+  dividerText: { fontSize: 10, fontWeight: 600, color: colors.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  fab: { position: 'fixed', bottom: 28, right: 28, width: 60, height: 60, borderRadius: 30, background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', boxShadow: '0 8px 32px rgba(34,197,94,0.4)' },
+  kpiCard: { background: colors.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.03)', border: `1px solid ${colors.border}` },
+  miniKpi: { background: '#FAFAFA', borderRadius: 12, padding: 12, textAlign: 'center' },
 };
 
 // ============================================
 // HELPERS
 // ============================================
 const formatDateKey = (date) => date.toISOString().split('T')[0];
-
-const formatDisplayDate = (date) => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (formatDateKey(date) === formatDateKey(today)) return 'Today';
-  if (formatDateKey(date) === formatDateKey(yesterday)) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-};
-
-const getDayNumber = (date) => {
-  const startDate = new Date('2026-04-10');
-  const diffTime = date - startDate;
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return Math.max(1, diffDays + 1);
-};
-
+const formatDisplayDate = (date) => { const today = new Date(); if (formatDateKey(date) === formatDateKey(today)) return 'Today'; return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+const getDayNumber = (date) => { const startDate = new Date('2026-04-10'); return Math.max(1, Math.floor((date - startDate) / (1000 * 60 * 60 * 24)) + 1); };
 const STORAGE_KEY = 'cutPhaseTracker';
-const loadAllData = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch (e) { console.error('Error loading data:', e); }
-  return SEED_DATA;
-};
-
+const loadAllData = () => { try { const s = localStorage.getItem(STORAGE_KEY); if (s) return JSON.parse(s); } catch (e) {} return SEED_DATA; };
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
 
 // ============================================
-// STYLES
-// ============================================
-const colors = {
-  primary: '#22C55E',
-  protein: '#22C55E',
-  carbs: '#3B82F6',
-  fat: '#F97316',
-  danger: '#EF4444',
-  purple: '#8B5CF6',
-  pink: '#EC4899',
-  yellow: '#F59E0B',
-  bg: '#F8F8F6',
-  card: '#FFFFFF',
-  border: 'rgba(0,0,0,0.04)',
-  textPrimary: '#1a1a1a',
-  textSecondary: '#888',
-  textMuted: '#AAA',
-};
-
-const styles = {
-  page: { minHeight: '100vh', background: colors.bg, paddingBottom: 100 },
-  header: {
-    position: 'sticky', top: 0, zIndex: 50,
-    background: 'rgba(255,255,255,0.92)',
-    backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-    borderBottom: '1px solid rgba(0,0,0,0.06)',
-  },
-  headerInner: { maxWidth: 480, margin: '0 auto', padding: '14px 20px' },
-  badge: {
-    background: `linear-gradient(135deg, ${colors.danger} 0%, #DC2626 100%)`,
-    color: 'white', fontSize: 10, fontWeight: 700,
-    padding: '6px 12px', borderRadius: 6, letterSpacing: 0.8, textTransform: 'uppercase',
-  },
-  tabs: {
-    display: 'flex', gap: 4, background: '#F0F0EE', borderRadius: 12, padding: 4,
-  },
-  tab: {
-    flex: 1, padding: '10px 12px', borderRadius: 10, border: 'none',
-    fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  tabActive: { background: 'white', color: colors.textPrimary, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
-  tabInactive: { background: 'transparent', color: colors.textSecondary },
-  main: { maxWidth: 480, margin: '0 auto', padding: '20px 20px' },
-  card: {
-    background: colors.card, borderRadius: 20, padding: 20, marginBottom: 14,
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}`,
-  },
-  cardHeader: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 },
-  cardIcon: { width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: 600, color: colors.textPrimary, letterSpacing: -0.3 },
-  statsRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 },
-  statCard: {
-    background: colors.card, borderRadius: 18, padding: '18px 20px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}`,
-  },
-  divider: { display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0 16px' },
-  dividerLine: { flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #E5E5E5, transparent)' },
-  dividerText: { fontSize: 10, fontWeight: 600, color: colors.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
-  mealCard: {
-    background: colors.card, borderRadius: 18, padding: 18, marginBottom: 10,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.03)', border: `1px solid ${colors.border}`,
-  },
-  fab: {
-    position: 'fixed', bottom: 28, right: 28, width: 60, height: 60, borderRadius: 30,
-    background: `linear-gradient(135deg, ${colors.primary} 0%, #16A34A 100%)`,
-    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    border: 'none', cursor: 'pointer',
-    boxShadow: '0 8px 32px rgba(34, 197, 94, 0.4), 0 2px 8px rgba(0,0,0,0.1)',
-  },
-  inventoryItem: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderRadius: 16, background: '#FAFAFA', marginBottom: 8,
-    border: '1px solid #F0F0F0', transition: 'all 0.2s',
-  },
-  mealPreset: {
-    background: colors.card, borderRadius: 18, padding: 18, marginBottom: 12,
-    boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}`,
-    cursor: 'pointer', transition: 'all 0.2s',
-  },
-  categoryBadge: {
-    fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-  },
-};
-
-// ============================================
-// COMPONENTS
+// REUSABLE COMPONENTS
 // ============================================
 const ProgressRing = ({ value, max, size = 72, strokeWidth = 5, color }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const progress = Math.min(value / max, 1);
-  const offset = circumference - progress * circumference;
-
+  const offset = circumference - Math.min(value / max, 1) * circumference;
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#F1F1F1" strokeWidth={strokeWidth} />
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
-          strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{value.toLocaleString()}{max < 500 ? 'g' : ''}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{value}{max < 500 ? 'g' : ''}</span>
         <span style={{ fontSize: 9, color: colors.textMuted }}>/ {max}{max < 500 ? 'g' : ''}</span>
       </div>
     </div>
   );
 };
 
-const MacroRing = ({ value, max, color, label, subtitle }) => {
-  const pct = Math.round((value / max) * 100);
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-      <ProgressRing value={value} max={max} color={color} />
-      <div style={{ marginTop: 10, textAlign: 'center' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color }}>{label} {pct >= 95 && '✓'}</div>
-        <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 3 }}>{pct}% — {subtitle}</div>
-      </div>
+const MacroRing = ({ value, max, color, label }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+    <ProgressRing value={value} max={max} color={color} />
+    <div style={{ marginTop: 10, textAlign: 'center' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color }}>{label}</div>
+      <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 3 }}>{Math.round((value / max) * 100)}%</div>
     </div>
-  );
-};
+  </div>
+);
 
-const MacroPills = ({ p, c, f, size = 'sm' }) => {
-  const fontSize = size === 'sm' ? 11 : 13;
+const MacroPills = ({ p, c, f }) => (
+  <div style={{ display: 'flex', gap: 6, fontSize: 11 }}>
+    <span style={{ color: colors.protein, fontWeight: 600 }}>P{Math.round(p)}</span>
+    <span style={{ color: '#DDD' }}>·</span>
+    <span style={{ color: colors.carbs, fontWeight: 600 }}>C{Math.round(c)}</span>
+    <span style={{ color: '#DDD' }}>·</span>
+    <span style={{ color: colors.fat, fontWeight: 600 }}>F{Math.round(f)}</span>
+  </div>
+);
+
+const TrendIndicator = ({ value, good = 'down', showValue = true }) => {
+  if (Math.abs(value) < 0.05) return <span style={{ fontSize: 11, color: colors.textMuted }}>—</span>;
+  const isGood = (good === 'down' && value < 0) || (good === 'up' && value > 0);
+  const Icon = value > 0 ? ArrowUpRight : ArrowDownRight;
   return (
-    <div style={{ display: 'flex', gap: size === 'sm' ? 6 : 10, fontSize }}>
-      <span style={{ color: colors.protein, fontWeight: 600 }}>P{Math.round(p)}</span>
-      <span style={{ color: '#DDD' }}>·</span>
-      <span style={{ color: colors.carbs, fontWeight: 600 }}>C{Math.round(c)}</span>
-      <span style={{ color: '#DDD' }}>·</span>
-      <span style={{ color: colors.fat, fontWeight: 600 }}>F{Math.round(f)}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: isGood ? colors.primary : colors.danger }}>
+      <Icon size={14} />
+      {showValue && <span style={{ fontSize: 11, fontWeight: 600 }}>{Math.abs(value).toFixed(1)}</span>}
     </div>
   );
 };
 
 const MealCard = ({ meal, icon: Icon, iconBg, title }) => {
   const totals = meal?.items?.reduce((a, i) => ({ cal: a.cal + i.cal, p: a.p + i.p, c: a.c + i.c, f: a.f + i.f }), { cal: 0, p: 0, c: 0, f: 0 }) || { cal: 0, p: 0, c: 0, f: 0 };
-  if (!meal || !meal.items || meal.items.length === 0) return null;
-
+  if (!meal?.items?.length) return null;
   return (
-    <div style={styles.mealCard}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+    <div style={{ background: colors.card, borderRadius: 18, padding: 18, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.03)', border: `1px solid ${colors.border}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon size={18} color="white" />
-          </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: colors.textPrimary }}>{title}</div>
-            <div style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>{meal.time}</div>
-          </div>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} color="white" /></div>
+          <div><div style={{ fontSize: 15, fontWeight: 600 }}>{title}</div><div style={{ fontSize: 12, color: colors.textSecondary }}>{meal.time}</div></div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: colors.textPrimary }}>{totals.cal} kcal</div>
-          <div style={{ marginTop: 2 }}><MacroPills p={totals.p} c={totals.c} f={totals.f} /></div>
-        </div>
+        <div style={{ textAlign: 'right' }}><div style={{ fontSize: 15, fontWeight: 700 }}>{totals.cal} kcal</div><MacroPills p={totals.p} c={totals.c} f={totals.f} /></div>
       </div>
       <div style={{ borderTop: '1px solid #F5F5F5', paddingTop: 12 }}>
-        {meal.items.map((item, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13 }}>
-            <span style={{ color: '#555' }}>{item.name}</span>
-            <span style={{ color: colors.textMuted, fontWeight: 500 }}>{item.qty}</span>
-          </div>
-        ))}
+        {meal.items.map((item, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13 }}><span style={{ color: '#555' }}>{item.name}</span><span style={{ color: colors.textMuted }}>{item.qty}</span></div>))}
       </div>
     </div>
   );
 };
 
+// Custom tooltip for charts
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ background: 'white', padding: '10px 14px', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: 'none' }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ fontSize: 11, color: p.color, margin: '2px 0' }}>
+            {p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</strong>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 // ============================================
-// TAB: DASHBOARD
+// INBODY TAB - COMPREHENSIVE
+// ============================================
+const InBodyTab = () => {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [chartView, setChartView] = useState('composition'); // composition, muscle, trends
+  
+  const current = INBODY_HISTORY[INBODY_HISTORY.length - 1];
+  const previous = INBODY_HISTORY[INBODY_HISTORY.length - 2];
+  const first = INBODY_HISTORY[0];
+  
+  // Calculate changes
+  const changes = {
+    weight: current.weight - previous.weight,
+    muscle: current.muscle - previous.muscle,
+    fat: current.fat - previous.fat,
+    fatPct: current.fatPct - previous.fatPct,
+    score: current.score - previous.score,
+  };
+  
+  // Journey totals
+  const journey = {
+    muscle: current.muscle - first.muscle,
+    fat: current.fat - first.fat,
+    weight: current.weight - first.weight,
+  };
+  
+  // Personal records
+  const records = {
+    lowestFatPct: Math.min(...INBODY_HISTORY.map(d => d.fatPct)),
+    highestMuscle: Math.max(...INBODY_HISTORY.map(d => d.muscle)),
+    highestScore: Math.max(...INBODY_HISTORY.map(d => d.score)),
+    lowestWeight: Math.min(...INBODY_HISTORY.map(d => d.weight)),
+    highestWeight: Math.max(...INBODY_HISTORY.map(d => d.weight)),
+  };
+  
+  // Fat to lose for abs
+  const fatToLose = current.fat - (current.weight * (TARGET_BF.max / 100));
+  const weeksToGoal = Math.ceil(fatToLose / 0.5); // 0.5kg fat loss per week
+  
+  // Chart data - last 12 measurements
+  const chartData = INBODY_HISTORY.slice(-12).map(d => ({
+    ...d,
+    label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    leanMass: d.weight - d.fat,
+  }));
+  
+  // Body composition for current
+  const composition = {
+    muscle: ((current.muscle / current.weight) * 100).toFixed(1),
+    fat: current.fatPct,
+    other: (100 - ((current.muscle / current.weight) * 100) - current.fatPct).toFixed(1),
+  };
+
+  return (
+    <>
+      {/* Last Measurement Date */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+        <div style={{ background: '#F0FDF4', padding: '8px 16px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Calendar size={14} color={colors.primary} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: colors.primary }}>
+            Last scan: {new Date(current.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        </div>
+        <span style={{ fontSize: 11, color: colors.textMuted }}>{INBODY_HISTORY.length} total</span>
+      </div>
+
+      {/* Main KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
+        <div style={styles.kpiCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Scale size={12} color={colors.carbs} />
+                <span style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Weight</span>
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: colors.carbs }}>{current.weight}<span style={{ fontSize: 14, color: colors.textMuted }}> kg</span></div>
+            </div>
+            <TrendIndicator value={changes.weight} good="down" />
+          </div>
+          <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 6 }}>Range: {records.lowestWeight} - {records.highestWeight} kg</div>
+        </div>
+        
+        <div style={styles.kpiCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Percent size={12} color={colors.fat} />
+                <span style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Body Fat</span>
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: colors.fat }}>{current.fatPct}<span style={{ fontSize: 14, color: colors.textMuted }}> %</span></div>
+            </div>
+            <TrendIndicator value={changes.fatPct} good="down" />
+          </div>
+          <div style={{ fontSize: 10, color: colors.primary, marginTop: 6, fontWeight: 600 }}>Target: {TARGET_BF.min}-{TARGET_BF.max}%</div>
+        </div>
+        
+        <div style={styles.kpiCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Dumbbell size={12} color={colors.primary} />
+                <span style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Muscle</span>
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: colors.primary }}>{current.muscle}<span style={{ fontSize: 14, color: colors.textMuted }}> kg</span></div>
+            </div>
+            <TrendIndicator value={changes.muscle} good="up" />
+          </div>
+          <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 6 }}>Best: {records.highestMuscle} kg</div>
+        </div>
+        
+        <div style={styles.kpiCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Award size={12} color={colors.purple} />
+                <span style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Score</span>
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: colors.purple }}>{current.score}<span style={{ fontSize: 14, color: colors.textMuted }}> pts</span></div>
+            </div>
+            <TrendIndicator value={changes.score} good="up" />
+          </div>
+          <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 6 }}>Best: {records.highestScore} pts</div>
+        </div>
+      </div>
+
+      {/* Goal Progress Card - Fixed visualization */}
+      <div style={{ ...styles.card, background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', border: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Target size={22} color={colors.yellow} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E' }}>Cut Goal: {TARGET_BF.min}-{TARGET_BF.max}% Body Fat</div>
+            <div style={{ fontSize: 12, color: '#B45309', marginTop: 4 }}>
+              {fatToLose.toFixed(1)} kg fat to lose → ~{weeksToGoal} weeks at 0.5kg/week
+            </div>
+          </div>
+        </div>
+        
+        {/* Visual scale showing current position relative to goal */}
+        <div style={{ marginTop: 16, position: 'relative' }}>
+          {/* Scale labels */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 10, color: '#92400E' }}>
+            <span>20%</span>
+            <span>15%</span>
+            <span style={{ color: colors.primary, fontWeight: 700 }}>🎯 10-12%</span>
+          </div>
+          
+          {/* Track */}
+          <div style={{ position: 'relative', height: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 6, overflow: 'visible' }}>
+            {/* Goal zone highlight (10-12%) */}
+            <div style={{ 
+              position: 'absolute', 
+              right: 0, 
+              width: `${((20 - TARGET_BF.max) / (20 - TARGET_BF.min)) * 100 * ((20 - TARGET_BF.min) / 20)}%`,
+              height: '100%', 
+              background: `linear-gradient(90deg, ${colors.primary}40, ${colors.primary}60)`,
+              borderRadius: '0 6px 6px 0',
+            }}></div>
+            
+            {/* Current position marker */}
+            <div style={{ 
+              position: 'absolute', 
+              left: `${Math.max(0, Math.min(100, ((20 - current.fatPct) / (20 - TARGET_BF.min)) * 100))}%`, 
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 20, 
+              height: 20, 
+              background: colors.fat,
+              borderRadius: '50%',
+              border: '3px solid white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            </div>
+          </div>
+          
+          {/* Current value label */}
+          <div style={{ 
+            marginTop: 8, 
+            textAlign: 'center',
+          }}>
+            <span style={{ 
+              background: colors.fat, 
+              color: 'white', 
+              padding: '4px 12px', 
+              borderRadius: 12, 
+              fontSize: 12, 
+              fontWeight: 700 
+            }}>
+              Now: {current.fatPct}%
+            </span>
+            <span style={{ 
+              marginLeft: 8,
+              fontSize: 11, 
+              color: '#92400E',
+              fontWeight: 600
+            }}>
+              → {(current.fatPct - TARGET_BF.max).toFixed(1)}% to go
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Journey Stats */}
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #DBEAFE, #BFDBFE)' }}><TrendingUp size={16} color={colors.carbs} /></div>
+          <span style={styles.cardTitle}>Your 2-Year Journey</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div style={{ ...styles.miniKpi, background: '#F0FDF4' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.primary }}>+{journey.muscle.toFixed(1)}</div>
+            <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>kg muscle</div>
+          </div>
+          <div style={{ ...styles.miniKpi, background: journey.fat < 0 ? '#F0FDF4' : '#FEF2F2' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: journey.fat < 0 ? colors.primary : colors.danger }}>{journey.fat > 0 ? '+' : ''}{journey.fat.toFixed(1)}</div>
+            <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>kg fat</div>
+          </div>
+          <div style={{ ...styles.miniKpi, background: '#F5F3FF' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: colors.purple }}>{INBODY_HISTORY.length}</div>
+            <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>scans</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart Toggle */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {[
+          { id: 'composition', label: 'Body Comp' },
+          { id: 'muscle', label: 'Muscle' },
+          { id: 'trends', label: 'All Trends' },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setChartView(tab.id)} style={{
+            flex: 1, padding: '10px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 600,
+            background: chartView === tab.id ? colors.primary : '#F0F0F0',
+            color: chartView === tab.id ? 'white' : colors.textSecondary,
+            cursor: 'pointer'
+          }}>{tab.label}</button>
+        ))}
+      </div>
+
+      {/* Charts */}
+      {chartView === 'composition' && (
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FED7AA, #FDBA74)' }}><BarChart3 size={16} color="#EA580C" /></div>
+            <span style={styles.cardTitle}>Weight vs Fat Trend</span>
+          </div>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} domain={['dataMin - 2', 'dataMax + 2']} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} domain={[8, 20]} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar yAxisId="left" dataKey="weight" fill={colors.carbs} radius={[4, 4, 0, 0]} name="Weight (kg)" opacity={0.8} />
+                <Line yAxisId="right" type="monotone" dataKey="fatPct" stroke={colors.fat} strokeWidth={3} dot={{ r: 4, fill: colors.fat }} name="Body Fat (%)" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 12, background: colors.carbs, borderRadius: 3 }}></div><span style={{ fontSize: 11, color: colors.textSecondary }}>Weight</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 3, background: colors.fat, borderRadius: 2 }}></div><span style={{ fontSize: 11, color: colors.textSecondary }}>Body Fat %</span></div>
+          </div>
+        </div>
+      )}
+
+      {chartView === 'muscle' && (
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #D1FAE5, #A7F3D0)' }}><Dumbbell size={16} color={colors.primary} /></div>
+            <span style={styles.cardTitle}>Muscle Mass Trend</span>
+          </div>
+          <div style={{ height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="muscleGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={colors.primary} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} domain={['dataMin - 1', 'dataMax + 1']} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="muscle" stroke={colors.primary} strokeWidth={2} fill="url(#muscleGrad)" name="Muscle (kg)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {chartView === 'trends' && (
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #E0E7FF, #C7D2FE)' }}><Activity size={16} color={colors.indigo} /></div>
+            <span style={styles.cardTitle}>All Metrics Over Time</span>
+          </div>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: colors.textMuted }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="weight" stroke={colors.carbs} strokeWidth={2} dot={{ r: 3 }} name="Weight" />
+                <Line type="monotone" dataKey="muscle" stroke={colors.primary} strokeWidth={2} dot={{ r: 3 }} name="Muscle" />
+                <Line type="monotone" dataKey="fat" stroke={colors.fat} strokeWidth={2} dot={{ r: 3 }} name="Fat Mass" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 3, background: colors.carbs, borderRadius: 2 }}></div><span style={{ fontSize: 10, color: colors.textSecondary }}>Weight</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 3, background: colors.primary, borderRadius: 2 }}></div><span style={{ fontSize: 10, color: colors.textSecondary }}>Muscle</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 12, height: 3, background: colors.fat, borderRadius: 2 }}></div><span style={{ fontSize: 10, color: colors.textSecondary }}>Fat</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Personal Records */}
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' }}><Award size={16} color={colors.yellow} /></div>
+          <span style={styles.cardTitle}>Personal Records</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <div style={{ ...styles.miniKpi, background: '#F0FDF4' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.primary }}>{records.lowestFatPct}%</div>
+            <div style={{ fontSize: 9, color: colors.textSecondary, marginTop: 4 }}>Lowest Fat</div>
+          </div>
+          <div style={{ ...styles.miniKpi, background: '#F0FDF4' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.primary }}>{records.highestMuscle} kg</div>
+            <div style={{ fontSize: 9, color: colors.textSecondary, marginTop: 4 }}>Peak Muscle</div>
+          </div>
+          <div style={{ ...styles.miniKpi, background: '#F5F3FF' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: colors.purple }}>{records.highestScore}</div>
+            <div style={{ fontSize: 9, color: colors.textSecondary, marginTop: 4 }}>Best Score</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Metrics */}
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FCE7F3, #FBCFE8)' }}><Heart size={16} color={colors.pink} /></div>
+          <span style={styles.cardTitle}>Additional Metrics</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          <div style={{ padding: 14, background: '#FAFAFA', borderRadius: 12 }}>
+            <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>BMR (Basal Metabolic Rate)</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{current.bmr} <span style={{ fontSize: 12, color: colors.textMuted }}>kcal</span></div>
+          </div>
+          <div style={{ padding: 14, background: '#FAFAFA', borderRadius: 12 }}>
+            <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>Visceral Fat Level</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: current.visceralLevel <= 4 ? colors.primary : colors.fat }}>{current.visceralLevel} <span style={{ fontSize: 12, color: colors.textMuted }}>/ 10</span></div>
+          </div>
+          <div style={{ padding: 14, background: '#FAFAFA', borderRadius: 12 }}>
+            <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>Protein Mass</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>{current.protein} <span style={{ fontSize: 12, color: colors.textMuted }}>kg</span></div>
+          </div>
+          <div style={{ padding: 14, background: '#FAFAFA', borderRadius: 12 }}>
+            <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>Waist-Hip Ratio</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: current.whr <= 0.90 ? colors.primary : colors.fat }}>{current.whr || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* History Table */}
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #E0E7FF, #C7D2FE)' }}><Calendar size={16} color={colors.purple} /></div>
+          <span style={styles.cardTitle}>Measurement History</span>
+        </div>
+        <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+          <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#FAFAFA', position: 'sticky', top: 0 }}>
+                <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: colors.textSecondary }}>Date</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: colors.carbs }}>Wt</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: colors.primary }}>Msc</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: colors.fat }}>BF%</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: colors.purple }}>Scr</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...INBODY_HISTORY].reverse().map((row, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #F5F5F5' }}>
+                  <td style={{ padding: '8px 6px', color: colors.textPrimary }}>{new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right' }}>{row.weight}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right' }}>{row.muscle}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right' }}>{row.fatPct}%</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right' }}>{row.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add New Button */}
+      <button onClick={() => setShowAddModal(true)} style={{ width: '100%', padding: 16, borderRadius: 14, border: `2px dashed ${colors.primary}`, background: '#F0FDF4', color: colors.primary, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <Plus size={18} /> Add New Measurement
+      </button>
+
+      {/* Add Modal */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddModal(false)}>
+          <div style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '28px 28px 0 0', padding: 24, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700 }}>Add InBody Measurement</h2>
+              <button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={18} color="#888" /></button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              <button style={{ flex: 1, padding: 14, borderRadius: 12, border: `2px solid ${colors.primary}`, background: '#F0FDF4', color: colors.primary, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Edit3 size={16} /> Manual Entry</button>
+              <button style={{ flex: 1, padding: 14, borderRadius: 12, border: '2px solid #E5E5E5', background: 'white', color: colors.textSecondary, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Upload size={16} /> Upload CSV</button>
+            </div>
+
+            <div style={{ background: '#F0F9FF', borderRadius: 12, padding: 14, marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#0369A1', marginBottom: 6 }}>💡 Tip: Export from InBody App</div>
+              <div style={{ fontSize: 11, color: '#0284C7', lineHeight: 1.5 }}>Open InBody app → Results → Export → Choose CSV format</div>
+            </div>
+
+            <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, marginBottom: 12, textTransform: 'uppercase' }}>Core Metrics</div>
+            
+            {[
+              { label: 'Date', type: 'date', placeholder: '2026-04-12' },
+              { label: 'Weight (kg)', type: 'number', placeholder: '79.3' },
+              { label: 'Skeletal Muscle Mass (kg)', type: 'number', placeholder: '38.5' },
+              { label: 'Body Fat Mass (kg)', type: 'number', placeholder: '12.7' },
+              { label: 'Percent Body Fat (%)', type: 'number', placeholder: '16.0' },
+              { label: 'BMR (kcal)', type: 'number', placeholder: '1808' },
+              { label: 'InBody Score', type: 'number', placeholder: '84' },
+            ].map((field, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, color: colors.textSecondary, display: 'block', marginBottom: 6 }}>{field.label}</label>
+                <input type={field.type} placeholder={field.placeholder} style={{ width: '100%', padding: 12, borderRadius: 10, border: '2px solid #F0F0F0', fontSize: 14, outline: 'none' }} />
+              </div>
+            ))}
+
+            <button style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 10 }}>Save Measurement</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+// ============================================
+// OTHER TABS (Simplified for brevity)
 // ============================================
 const DashboardTab = ({ allData, selectedDate, setSelectedDate }) => {
   const dateKey = formatDateKey(selectedDate);
   const dayData = getDayData(allData, dateKey);
   const meals = dayData.meals || [];
   const dayNumber = getDayNumber(selectedDate);
-
-  const totals = meals.reduce((acc, meal) => {
-    (meal.items || []).forEach(item => { acc.cal += item.cal || 0; acc.p += item.p || 0; acc.c += item.c || 0; acc.f += item.f || 0; });
-    return acc;
-  }, { cal: 0, p: 0, c: 0, f: 0 });
-
-  const calPct = Math.round((totals.cal / TARGETS.calories) * 100);
-  const pPct = Math.round((totals.p / TARGETS.protein) * 100);
-
-  const goToPrevDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); };
-  const goToNextDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); };
+  const totals = meals.reduce((acc, meal) => { (meal.items || []).forEach(item => { acc.cal += item.cal || 0; acc.p += item.p || 0; acc.c += item.c || 0; acc.f += item.f || 0; }); return acc; }, { cal: 0, p: 0, c: 0, f: 0 });
+  const current = INBODY_HISTORY[INBODY_HISTORY.length - 1];
 
   return (
     <>
-      {/* Date Navigation */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#F5F5F3', borderRadius: 12, padding: '8px 12px', marginBottom: 20 }}>
-        <button onClick={goToPrevDay} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-          <ChevronLeft size={18} color="#666" />
-        </button>
-        <div style={{ minWidth: 120, textAlign: 'center', fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>{formatDisplayDate(selectedDate)}</div>
-        <button onClick={goToNextDay} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-          <ChevronRight size={18} color="#666" />
-        </button>
+        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={18} color="#666" /></button>
+        <div style={{ minWidth: 120, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{formatDisplayDate(selectedDate)}</div>
+        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={18} color="#666" /></button>
         <span style={{ fontSize: 11, fontWeight: 600, color: colors.primary, background: '#F0FDF4', padding: '4px 10px', borderRadius: 6 }}>Day {dayNumber}</span>
       </div>
 
-      {/* Body Fat Stats */}
-      <div style={styles.statsRow}>
-        <div style={styles.statCard}>
-          <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 500, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Current body fat</div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: colors.fat, letterSpacing: -1 }}>{INBODY.fatPct}%</div>
-          <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 6 }}>{INBODY.fat} kg fat mass</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 500, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Target for abs</div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: colors.primary, letterSpacing: -1 }}>10-12%</div>
-          <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 6 }}>~4-5 kg to lose</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+        <div style={styles.kpiCard}><div style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Body Fat</div><div style={{ fontSize: 28, fontWeight: 700, color: colors.fat, marginTop: 4 }}>{current.fatPct}%</div><div style={{ fontSize: 10, color: colors.textMuted, marginTop: 4 }}>Target: 10-12%</div></div>
+        <div style={styles.kpiCard}><div style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Muscle</div><div style={{ fontSize: 28, fontWeight: 700, color: colors.primary, marginTop: 4 }}>{current.muscle} kg</div><div style={{ fontSize: 10, color: colors.textMuted, marginTop: 4 }}>Preserve during cut</div></div>
       </div>
 
-      {/* Cut Targets */}
       <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FEE2E2, #FECACA)' }}><Target size={16} color={colors.danger} /></div>
-          <span style={styles.cardTitle}>Your cut targets</span>
-        </div>
+        <div style={styles.cardHeader}><div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FEE2E2, #FECACA)' }}><Target size={16} color={colors.danger} /></div><span style={styles.cardTitle}>Cut Targets</span></div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
-          <div><div style={{ fontSize: 24, fontWeight: 700, color: colors.textPrimary }}>1,800</div><div style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>kcal</div><div style={{ fontSize: 10, color: colors.danger, marginTop: 4, fontWeight: 600 }}>-700 deficit</div></div>
-          <div><div style={{ fontSize: 24, fontWeight: 700, color: colors.protein }}>160g</div><div style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>protein</div><div style={{ fontSize: 10, color: colors.protein, marginTop: 4, fontWeight: 600 }}>2g/kg</div></div>
-          <div><div style={{ fontSize: 24, fontWeight: 700, color: colors.carbs }}>130g</div><div style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>carbs</div><div style={{ fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: 600 }}>moderate</div></div>
-          <div><div style={{ fontSize: 24, fontWeight: 700, color: colors.fat }}>55g</div><div style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>fat</div><div style={{ fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: 600 }}>0.7g/kg</div></div>
+          <div><div style={{ fontSize: 22, fontWeight: 700 }}>1,800</div><div style={{ fontSize: 10, color: colors.textMuted }}>kcal</div></div>
+          <div><div style={{ fontSize: 22, fontWeight: 700, color: colors.protein }}>160g</div><div style={{ fontSize: 10, color: colors.textMuted }}>protein</div></div>
+          <div><div style={{ fontSize: 22, fontWeight: 700, color: colors.carbs }}>130g</div><div style={{ fontSize: 10, color: colors.textMuted }}>carbs</div></div>
+          <div><div style={{ fontSize: 22, fontWeight: 700, color: colors.fat }}>55g</div><div style={{ fontSize: 10, color: colors.textMuted }}>fat</div></div>
         </div>
       </div>
 
-      {/* Day Progress */}
       <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FED7AA, #FDBA74)' }}><Flame size={16} color="#EA580C" /></div>
-          <span style={styles.cardTitle}>Day {dayNumber} progress</span>
-        </div>
+        <div style={styles.cardHeader}><div style={{ ...styles.cardIcon, background: 'linear-gradient(135deg, #FED7AA, #FDBA74)' }}><Flame size={16} color="#EA580C" /></div><span style={styles.cardTitle}>Day {dayNumber} Progress</span></div>
         {totals.cal > 0 ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <MacroRing value={totals.cal} max={TARGETS.calories} color={colors.primary} label="Calories" subtitle={calPct >= 90 ? 'on target' : 'in progress'} />
-            <MacroRing value={Math.round(totals.p)} max={TARGETS.protein} color={colors.protein} label="Protein" subtitle={pPct >= 70 ? 'good' : 'building'} />
-            <MacroRing value={Math.round(totals.c)} max={TARGETS.carbs} color={colors.carbs} label="Carbs" subtitle="on track" />
-            <MacroRing value={Math.round(totals.f)} max={TARGETS.fat} color={colors.fat} label="Fat" subtitle="controlled" />
+            <MacroRing value={totals.cal} max={TARGETS.calories} color={colors.primary} label="Calories" />
+            <MacroRing value={Math.round(totals.p)} max={TARGETS.protein} color={colors.protein} label="Protein" />
+            <MacroRing value={Math.round(totals.c)} max={TARGETS.carbs} color={colors.carbs} label="Carbs" />
+            <MacroRing value={Math.round(totals.f)} max={TARGETS.fat} color={colors.fat} label="Fat" />
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: colors.textMuted }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🍽️</div>
-            <div style={{ fontSize: 14, fontWeight: 500 }}>No meals logged yet</div>
-          </div>
+          <div style={{ textAlign: 'center', padding: 40, color: colors.textMuted }}><div style={{ fontSize: 32 }}>🍽️</div><div style={{ marginTop: 12 }}>No meals logged</div></div>
         )}
       </div>
 
-      {/* Insight */}
-      {totals.cal > 0 && (
-        <div style={{ background: 'linear-gradient(135deg, #DCFCE7 0%, #D1FAE5 100%)', borderRadius: 18, padding: 18, marginBottom: 14, border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <div style={{ width: 24, height: 24, borderRadius: 8, background: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Check size={14} color="white" strokeWidth={3} /></div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#166534', marginBottom: 6 }}>{calPct >= 90 ? 'Great day!' : 'On track!'}</div>
-              <div style={{ fontSize: 13, color: '#15803D', lineHeight: 1.5 }}>{calPct >= 90 ? `You hit ${calPct}% of your calorie target with ${Math.round(totals.p)}g protein.` : `${TARGETS.calories - totals.cal} kcal remaining. Keep protein high!`}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Meals */}
       {meals.length > 0 && (
         <>
           <div style={styles.divider}><div style={styles.dividerLine}></div><span style={styles.dividerText}>Meals</span><div style={styles.dividerLine}></div></div>
-          <MealCard meal={meals.find(m => m.slot === 'breakfast')} icon={Coffee} iconBg={`linear-gradient(135deg, #FCD34D, ${colors.yellow})`} title="Breakfast" />
-          <MealCard meal={meals.find(m => m.slot === 'lunch')} icon={Sun} iconBg={`linear-gradient(135deg, #60A5FA, ${colors.carbs})`} title="Lunch" />
-          <MealCard meal={meals.find(m => m.slot === 'snack')} icon={Sparkles} iconBg={`linear-gradient(135deg, #F472B6, ${colors.pink})`} title="Snack" />
-          <MealCard meal={meals.find(m => m.slot === 'dinner')} icon={Moon} iconBg={`linear-gradient(135deg, #A78BFA, ${colors.purple})`} title="Dinner" />
-
-          <div style={{ background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)', borderRadius: 18, padding: 18, border: '1px solid rgba(34, 197, 94, 0.15)', marginBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#166534' }}>Daily Total</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <span style={{ fontSize: 18, fontWeight: 800, color: '#166534' }}>{totals.cal} kcal</span>
-                <MacroPills p={totals.p} c={totals.c} f={totals.f} size="md" />
-              </div>
-            </div>
-          </div>
+          <MealCard meal={meals.find(m => m.slot === 'breakfast')} icon={Coffee} iconBg="linear-gradient(135deg, #FCD34D, #F59E0B)" title="Breakfast" />
+          <MealCard meal={meals.find(m => m.slot === 'lunch')} icon={Sun} iconBg="linear-gradient(135deg, #60A5FA, #3B82F6)" title="Lunch" />
+          <MealCard meal={meals.find(m => m.slot === 'snack')} icon={Sparkles} iconBg="linear-gradient(135deg, #F472B6, #EC4899)" title="Snack" />
+          <MealCard meal={meals.find(m => m.slot === 'dinner')} icon={Moon} iconBg="linear-gradient(135deg, #A78BFA, #8B5CF6)" title="Dinner" />
         </>
       )}
-
-      {/* Timeline */}
-      <div style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', borderRadius: 16, padding: 16, border: '1px solid rgba(59, 130, 246, 0.15)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <TrendingDown size={16} color={colors.carbs} />
-          <span style={{ fontSize: 13, color: '#1E40AF' }}><strong>Timeline:</strong> At -700 kcal/day, expect abs in <span style={{ color: '#16A34A', fontWeight: 700 }}>8-10 weeks</span></span>
-        </div>
-      </div>
     </>
   );
 };
 
-// ============================================
-// TAB: INVENTORY
-// ============================================
 const InventoryTab = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-
-  const categories = ['All', ...new Set(INVENTORY.map(i => i.category))];
-  const filtered = INVENTORY.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const categoryColors = {
-    Protein: { bg: '#F0FDF4', text: colors.protein },
-    Carbs: { bg: '#EFF6FF', text: colors.carbs },
-    Dairy: { bg: '#FFF7ED', text: colors.fat },
-    Beverages: { bg: '#F5F3FF', text: colors.purple },
-    Fruits: { bg: '#FDF2F8', text: colors.pink },
-    Supplements: { bg: '#FEF3C7', text: colors.yellow },
-  };
-
+  const [search, setSearch] = useState('');
+  const [cat, setCat] = useState('All');
+  const cats = ['All', ...new Set(INVENTORY.map(i => i.category))];
+  const filtered = INVENTORY.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) && (cat === 'All' || i.category === cat));
+  const catColors = { Protein: { bg: '#F0FDF4', text: colors.primary }, Carbs: { bg: '#EFF6FF', text: colors.carbs }, Dairy: { bg: '#FFF7ED', text: colors.fat }, Beverages: { bg: '#F5F3FF', text: colors.purple }, Fruits: { bg: '#FDF2F8', text: colors.pink }, Supplements: { bg: '#FEF3C7', text: colors.yellow } };
   return (
     <>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ position: 'relative', marginBottom: 16 }}>
-          <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }} />
-          <input
-            type="text"
-            placeholder="Search ingredients..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '14px 14px 14px 46px', borderRadius: 14, border: '2px solid #F0F0F0', fontSize: 14, outline: 'none', background: 'white' }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              style={{
-                padding: '8px 16px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600,
-                background: selectedCategory === cat ? colors.primary : '#F0F0F0',
-                color: selectedCategory === cat ? 'white' : colors.textSecondary,
-                cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s',
-              }}
-            >{cat}</button>
-          ))}
-        </div>
-      </div>
-
+      <div style={{ position: 'relative', marginBottom: 16 }}><Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }} /><input type="text" placeholder="Search ingredients..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '14px 14px 14px 46px', borderRadius: 14, border: '2px solid #F0F0F0', fontSize: 14, outline: 'none' }} /></div>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 16, paddingBottom: 4 }}>{cats.map(c => (<button key={c} onClick={() => setCat(c)} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600, background: cat === c ? colors.primary : '#F0F0F0', color: cat === c ? 'white' : colors.textSecondary, cursor: 'pointer', whiteSpace: 'nowrap' }}>{c}</button>))}</div>
       <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>{filtered.length} ingredients</div>
-
       {filtered.map(item => (
-        <div key={item.id} style={styles.inventoryItem}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{item.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {item.brand !== '-' && <span style={{ fontSize: 12, color: colors.textSecondary }}>{item.brand}</span>}
-              <span style={{ fontSize: 12, color: colors.textMuted }}>{item.serving}</span>
-            </div>
-            <span style={{ ...styles.categoryBadge, background: categoryColors[item.category]?.bg || '#F0F0F0', color: categoryColors[item.category]?.text || colors.textSecondary, marginTop: 8, display: 'inline-block' }}>{item.category}</span>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, marginBottom: 4 }}>{item.cal}</div>
-            <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>kcal</div>
-            <MacroPills p={item.p} c={item.c} f={item.f} />
-          </div>
+        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 16, background: '#FAFAFA', marginBottom: 8, border: '1px solid #F0F0F0' }}>
+          <div><div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.name}</div><div style={{ fontSize: 12, color: colors.textMuted }}>{item.brand !== '-' && `${item.brand} · `}{item.serving}</div><span style={{ fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 6, background: catColors[item.category]?.bg, color: catColors[item.category]?.text, marginTop: 8, display: 'inline-block' }}>{item.category}</span></div>
+          <div style={{ textAlign: 'right' }}><div style={{ fontSize: 18, fontWeight: 700 }}>{item.cal}</div><div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6 }}>kcal</div><MacroPills p={item.p} c={item.c} f={item.f} /></div>
         </div>
       ))}
     </>
   );
 };
 
-// ============================================
-// TAB: MY MEALS
-// ============================================
 const MyMealsTab = () => {
-  const [expandedMeal, setExpandedMeal] = useState(null);
-
+  const [expanded, setExpanded] = useState(null);
   return (
     <>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 1.5 }}>
-          Your favorite meal combos. Tap to see details or quick-add to today's log.
-        </div>
-      </div>
-
-      <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>{MY_MEALS.length} saved meals</div>
-
+      <div style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 20 }}>Your favorite meal combos. Tap to expand.</div>
       {MY_MEALS.map(meal => (
-        <div
-          key={meal.id}
-          style={styles.mealPreset}
-          onClick={() => setExpandedMeal(expandedMeal === meal.id ? null : meal.id)}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div style={{ fontSize: 32 }}>{meal.emoji}</div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, marginBottom: 4 }}>{meal.name}</div>
-                <div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>{meal.description}</div>
-                <MacroPills p={meal.totals.p} c={meal.totals.c} f={meal.totals.f} />
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: colors.textPrimary }}>{meal.totals.cal}</div>
-              <div style={{ fontSize: 11, color: colors.textMuted }}>kcal</div>
-              <div style={{ fontSize: 10, color: colors.primary, marginTop: 8, fontWeight: 600 }}>Used {meal.timesUsed}x</div>
-            </div>
+        <div key={meal.id} onClick={() => setExpanded(expanded === meal.id ? null : meal.id)} style={{ background: colors.card, borderRadius: 18, padding: 18, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: `1px solid ${colors.border}`, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: 14 }}><div style={{ fontSize: 32 }}>{meal.emoji}</div><div><div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{meal.name}</div><div style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>{meal.description}</div><MacroPills p={meal.totals.p} c={meal.totals.c} f={meal.totals.f} /></div></div>
+            <div style={{ textAlign: 'right' }}><div style={{ fontSize: 20, fontWeight: 800 }}>{meal.totals.cal}</div><div style={{ fontSize: 11, color: colors.textMuted }}>kcal</div></div>
           </div>
-
-          {expandedMeal === meal.id && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #F0F0F0' }}>
-              <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Ingredients</div>
-              {meal.items.map((item, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, borderBottom: i < meal.items.length - 1 ? '1px solid #F8F8F8' : 'none' }}>
-                  <span style={{ color: colors.textPrimary }}>{item.name}</span>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <span style={{ color: colors.textMuted }}>{item.qty}</span>
-                    <span style={{ fontWeight: 600, color: colors.textSecondary }}>{item.cal} kcal</span>
-                  </div>
-                </div>
-              ))}
-              <button style={{
-                width: '100%', marginTop: 16, padding: '14px', borderRadius: 12, border: 'none',
-                background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-              }}>
-                <Zap size={16} /> Quick Add to Today
-              </button>
-            </div>
-          )}
+          {expanded === meal.id && (<div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #F0F0F0' }}>{meal.items.map((item, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}><span>{item.name}</span><span style={{ color: colors.textMuted }}>{item.qty} · {item.cal} kcal</span></div>))}<button style={{ width: '100%', marginTop: 16, padding: 14, borderRadius: 12, border: 'none', background: `linear-gradient(135deg, ${colors.primary}, #16A34A)`, color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Zap size={16} /> Quick Add</button></div>)}
         </div>
       ))}
     </>
@@ -633,7 +760,7 @@ const MyMealsTab = () => {
 };
 
 // ============================================
-// MAIN DASHBOARD
+// MAIN APP
 // ============================================
 export default function CutPhaseDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -644,9 +771,10 @@ export default function CutPhaseDashboard() {
   useEffect(() => { setAllData(loadAllData()); }, []);
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: Flame },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'meals', label: 'My Meals', icon: UtensilsCrossed },
+    { id: 'dashboard', label: 'Home', icon: Flame },
+    { id: 'inbody', label: 'InBody', icon: Activity },
+    { id: 'inventory', label: 'Foods', icon: Package },
+    { id: 'meals', label: 'Meals', icon: UtensilsCrossed },
   ];
 
   return (
@@ -654,89 +782,30 @@ export default function CutPhaseDashboard() {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <style>{`* { font-family: 'Inter', -apple-system, sans-serif; box-sizing: border-box; margin: 0; padding: 0; } ::-webkit-scrollbar { display: none; }`}</style>
 
-      {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={styles.badge}>CUT PHASE</span>
-              <span style={{ fontSize: 13, color: colors.textSecondary, fontWeight: 500 }}>Abs visibility</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: colors.textSecondary }}>
-              <Calendar size={14} />
-              <span>Apr 12</span>
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={styles.badge}>CUT PHASE</span><span style={{ fontSize: 13, color: colors.textSecondary }}>Abs visibility</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: colors.textSecondary }}><Calendar size={14} /><span>Apr 12</span></div>
           </div>
-
-          {/* Tabs */}
-          <div style={styles.tabs}>
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{ ...styles.tab, ...(activeTab === tab.id ? styles.tabActive : styles.tabInactive) }}
-              >
-                <tab.icon size={14} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <div style={styles.tabs}>{tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ ...styles.tab, ...(activeTab === tab.id ? styles.tabActive : styles.tabInactive) }}><tab.icon size={14} />{tab.label}</button>))}</div>
         </div>
       </header>
 
       <main style={styles.main}>
         {activeTab === 'dashboard' && <DashboardTab allData={allData} selectedDate={selectedDate} setSelectedDate={setSelectedDate} />}
+        {activeTab === 'inbody' && <InBodyTab />}
         {activeTab === 'inventory' && <InventoryTab />}
         {activeTab === 'meals' && <MyMealsTab />}
       </main>
 
-      {/* FAB */}
-      <button onClick={() => setShowAddModal(true)} style={styles.fab}>
-        <Plus size={26} strokeWidth={2.5} />
-      </button>
+      <button onClick={() => setShowAddModal(true)} style={styles.fab}><Plus size={26} strokeWidth={2.5} /></button>
 
-      {/* Add Modal */}
       {showAddModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddModal(false)}>
           <div style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '28px 28px 0 0', padding: 24, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: colors.textPrimary }}>Log Food</h2>
-              <button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={18} color="#888" /></button>
-            </div>
-
-            <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Quick Add Meals</div>
-            {MY_MEALS.slice(0, 3).map(meal => (
-              <div key={meal.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 14, background: '#F0FDF4', marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 24 }}>{meal.emoji}</span>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>{meal.name}</div>
-                    <div style={{ fontSize: 12, color: colors.textSecondary }}>{meal.totals.cal} kcal</div>
-                  </div>
-                </div>
-                <ChevronRightIcon size={18} color={colors.primary} />
-              </div>
-            ))}
-
-            <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, marginTop: 20, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Or search ingredients</div>
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-              <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }} />
-              <input type="text" placeholder="Search foods..." style={{ width: '100%', padding: '14px 14px 14px 46px', borderRadius: 14, border: '2px solid #F0F0F0', fontSize: 14, outline: 'none' }} />
-            </div>
-
-            {INVENTORY.slice(0, 5).map(food => (
-              <div key={food.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 12, background: '#FAFAFA', marginBottom: 6, cursor: 'pointer' }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary }}>{food.name}</div>
-                  <div style={{ fontSize: 11, color: colors.textMuted }}>{food.serving}</div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>{food.cal} kcal</div>
-              </div>
-            ))}
-
-            <div style={{ textAlign: 'center', fontSize: 12, color: colors.textMuted, marginTop: 20 }}>
-              Or use Claude: <span style={{ color: colors.primary, fontWeight: 600 }}>"food - chicken 200g, eggs 4"</span>
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}><h2 style={{ fontSize: 20, fontWeight: 700 }}>Log Food</h2><button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, cursor: 'pointer' }}><X size={18} color="#888" /></button></div>
+            {MY_MEALS.map(meal => (<div key={meal.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 14, borderRadius: 14, background: '#F0FDF4', marginBottom: 8, cursor: 'pointer', border: '1px solid rgba(34,197,94,0.2)' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 24 }}>{meal.emoji}</span><div><div style={{ fontSize: 14, fontWeight: 600 }}>{meal.name}</div><div style={{ fontSize: 12, color: colors.textSecondary }}>{meal.totals.cal} kcal</div></div></div><ChevronRight size={18} color={colors.primary} /></div>))}
           </div>
         </div>
       )}
