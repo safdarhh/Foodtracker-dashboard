@@ -148,9 +148,19 @@ const styles = {
 // ============================================
 // HELPERS
 // ============================================
-const formatDateKey = (date) => date.toISOString().split('T')[0];
+const formatDateKey = (date) => {
+  if (!date) return new Date().toISOString().split('T')[0];
+  if (typeof date === 'string') return date.split('T')[0];
+  if (date instanceof Date) return date.toISOString().split('T')[0];
+  return String(date).split('T')[0];
+};
 const formatDisplayDate = (date) => { const today = new Date(); if (formatDateKey(date) === formatDateKey(today)) return 'Today'; return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
-const getDayNumber = (date) => { const startDate = new Date('2026-04-10'); return Math.max(1, Math.floor((date - startDate) / (1000 * 60 * 60 * 24)) + 1); };
+const getDayNumber = (date) => {
+  const startDate = new Date('2026-04-10');
+  const currentDate = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(currentDate.getTime())) return 1;
+  return Math.max(1, Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+};
 const STORAGE_KEY = 'cutPhaseTracker';
 const loadAllData = () => { try { const s = localStorage.getItem(STORAGE_KEY); if (s) return JSON.parse(s); } catch (e) {} return SEED_DATA; };
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
@@ -1478,7 +1488,9 @@ const MyMealsTab = ({ data }) => {
 export default function CutPhaseDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [allData, setAllData] = useState({});
-  const [selectedDate, setSelectedDate] = useState(new Date('2026-04-12'));
+const [selectedDate, setSelectedDate] = useState(() => {
+  return new Date().toISOString().split('T')[0];
+});
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAICoach, setShowAICoach] = useState(false);
   
