@@ -10,7 +10,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart,
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxUj35YK0i5l46OEFG_6YUEXmNySjaabEHXIgI7eqN3pE_h5TC_qcmzYgLSDzxZeUaQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz7Q1BwDyF52fSea9GORdCM2m0c98aEDj6zKjYyFBC_iXEBbJpw-HHAO1CtG9GA_eFP/exec';
 
 // User's personalized targets (configurable based on goals)
 const USER_GOALS = {
@@ -47,40 +47,8 @@ const swiggyColors = {
 const colors = swiggyColors;
 
 // ============================================
-// MOCK DATA - Simulating Swiggy Orders
+// MOCK DATA - Simulating Swiggy Orders (Last 10 days: April 7-16, 2026)
 // ============================================
-const SWIGGY_ORDERS = [
-  { 
-    id: 'SW001', 
-    restaurant: 'Bowl Company',
-    time: '08:15',
-    items: [
-      { name: 'Protein Power Bowl', qty: '1', cal: 485, p: 42, c: 35, f: 18 }
-    ],
-    orderTotal: 299,
-  },
-  { 
-    id: 'SW002', 
-    restaurant: 'Eatfit',
-    time: '13:30',
-    items: [
-      { name: 'Grilled Chicken Salad', qty: '1', cal: 320, p: 38, c: 12, f: 14 },
-      { name: 'Quinoa Bowl', qty: '1', cal: 280, p: 12, c: 42, f: 8 }
-    ],
-    orderTotal: 449,
-  },
-  { 
-    id: 'SW003', 
-    restaurant: 'Dominos',
-    time: '20:00',
-    items: [
-      { name: 'Margherita Pizza (Medium)', qty: '1', cal: 680, p: 28, c: 78, f: 28 },
-      { name: 'Garlic Breadsticks', qty: '1', cal: 320, p: 8, c: 42, f: 14 }
-    ],
-    orderTotal: 599,
-  }
-];
-
 const RESTAURANT_INVENTORY = [
   { id: 1, name: 'Grilled Chicken Breast', restaurant: 'Eatfit', serving: '200g', cal: 330, p: 62, c: 0, f: 8, category: 'Protein', tags: ['high-protein', 'low-carb'] },
   { id: 2, name: 'Protein Power Bowl', restaurant: 'Bowl Company', serving: '1 bowl', cal: 485, p: 42, c: 35, f: 18, category: 'Bowls', tags: ['balanced', 'high-protein'] },
@@ -90,28 +58,84 @@ const RESTAURANT_INVENTORY = [
   { id: 6, name: 'Chicken Tikka', restaurant: 'Punjab Grill', serving: '6 pcs', cal: 280, p: 35, c: 8, f: 12, category: 'Indian', tags: ['high-protein', 'low-carb'] },
   { id: 7, name: 'Smoothie Bowl', restaurant: 'Smoothie Factory', serving: '1 bowl', cal: 350, p: 12, c: 52, f: 14, category: 'Healthy', tags: ['breakfast', 'fruits'] },
   { id: 8, name: 'Grilled Fish & Veggies', restaurant: 'Coastal Kitchen', serving: '1 plate', cal: 380, p: 45, c: 18, f: 16, category: 'Seafood', tags: ['high-protein', 'omega-3'] },
+  { id: 9, name: 'Paneer Tikka', restaurant: 'Punjab Grill', serving: '6 pcs', cal: 320, p: 22, c: 12, f: 20, category: 'Indian', tags: ['vegetarian', 'protein'] },
+  { id: 10, name: 'Caesar Salad', restaurant: 'Salad Days', serving: '1 bowl', cal: 380, p: 18, c: 22, f: 26, category: 'Salads', tags: ['classic', 'protein'] },
 ];
 
+// 10 days of seed data: April 7-16, 2026
 const SEED_DATA = {
+  '2026-04-16': { 
+    meals: [
+      { slot: 'breakfast', time: '08:30', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW016A', items: [{ name: 'Protein Power Bowl', qty: '1 bowl', cal: 485, p: 42, c: 35, f: 18 }] },
+      { slot: 'lunch', time: '13:15', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW016B', items: [{ name: 'Grilled Chicken Breast', qty: '200g', cal: 330, p: 62, c: 0, f: 8 }, { name: 'Quinoa Salad', qty: '1', cal: 280, p: 12, c: 38, f: 10 }] },
+    ] 
+  },
+  '2026-04-15': { 
+    meals: [
+      { slot: 'breakfast', time: '09:00', source: 'manual', items: [{ name: 'Eggs & Toast', qty: '4 eggs + 2 toast', cal: 420, p: 28, c: 32, f: 22 }] },
+      { slot: 'lunch', time: '13:30', source: 'swiggy', restaurant: 'Punjab Grill', orderId: 'SW015A', items: [{ name: 'Chicken Tikka', qty: '6 pcs', cal: 280, p: 35, c: 8, f: 12 }, { name: 'Tandoori Roti', qty: '2', cal: 180, p: 6, c: 36, f: 2 }] },
+      { slot: 'snack', time: '17:00', source: 'manual', items: [{ name: 'Protein Shake', qty: '1 scoop', cal: 130, p: 25, c: 3, f: 2 }] },
+      { slot: 'dinner', time: '20:30', source: 'swiggy', restaurant: 'Coastal Kitchen', orderId: 'SW015B', items: [{ name: 'Grilled Fish & Veggies', qty: '1 plate', cal: 380, p: 45, c: 18, f: 16 }] },
+    ] 
+  },
   '2026-04-14': { 
     meals: [
-      { slot: 'breakfast', time: '08:15', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW001', items: [{ name: 'Protein Power Bowl', qty: '1 bowl', cal: 485, p: 42, c: 35, f: 18 }] },
-      { slot: 'lunch', time: '13:30', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW002', items: [{ name: 'Grilled Chicken Salad', qty: '1', cal: 320, p: 38, c: 12, f: 14 }, { name: 'Quinoa Bowl', qty: '1', cal: 280, p: 12, c: 42, f: 8 }] },
+      { slot: 'breakfast', time: '08:15', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW014A', items: [{ name: 'Protein Power Bowl', qty: '1 bowl', cal: 485, p: 42, c: 35, f: 18 }] },
+      { slot: 'lunch', time: '13:30', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW014B', items: [{ name: 'Grilled Chicken Salad', qty: '1', cal: 320, p: 38, c: 12, f: 14 }, { name: 'Quinoa Bowl', qty: '1', cal: 280, p: 12, c: 42, f: 8 }] },
+      { slot: 'dinner', time: '20:00', source: 'swiggy', restaurant: 'Punjab Grill', orderId: 'SW014C', items: [{ name: 'Paneer Tikka', qty: '6 pcs', cal: 320, p: 22, c: 12, f: 20 }, { name: 'Dal Makhani', qty: '1 bowl', cal: 280, p: 12, c: 32, f: 14 }] },
     ] 
   },
   '2026-04-13': { 
     meals: [
       { slot: 'breakfast', time: '09:00', source: 'manual', items: [{ name: 'Home Cooked Eggs', qty: '4 eggs', cal: 288, p: 24, c: 2, f: 20 }] },
-      { slot: 'lunch', time: '13:00', source: 'swiggy', restaurant: 'Punjab Grill', orderId: 'SW004', items: [{ name: 'Chicken Tikka', qty: '6 pcs', cal: 280, p: 35, c: 8, f: 12 }, { name: 'Tandoori Roti', qty: '2', cal: 180, p: 6, c: 36, f: 2 }] },
-      { slot: 'dinner', time: '20:30', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW005', items: [{ name: 'Grilled Fish & Veggies', qty: '1 plate', cal: 380, p: 45, c: 18, f: 16 }] },
+      { slot: 'lunch', time: '13:00', source: 'swiggy', restaurant: 'Punjab Grill', orderId: 'SW013A', items: [{ name: 'Chicken Tikka', qty: '6 pcs', cal: 280, p: 35, c: 8, f: 12 }, { name: 'Tandoori Roti', qty: '2', cal: 180, p: 6, c: 36, f: 2 }] },
+      { slot: 'dinner', time: '20:30', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW013B', items: [{ name: 'Grilled Fish & Veggies', qty: '1 plate', cal: 380, p: 45, c: 18, f: 16 }] },
     ] 
   },
   '2026-04-12': { 
     meals: [
-      { slot: 'breakfast', time: '08:30', source: 'swiggy', restaurant: 'Theobroma', items: [{ name: 'Greek Yogurt Parfait', qty: '1', cal: 280, p: 18, c: 32, f: 10 }] },
-      { slot: 'lunch', time: '13:15', source: 'swiggy', restaurant: 'Bowl Company', items: [{ name: 'Protein Power Bowl', qty: '1', cal: 485, p: 42, c: 35, f: 18 }] },
+      { slot: 'breakfast', time: '08:30', source: 'swiggy', restaurant: 'Theobroma', orderId: 'SW012A', items: [{ name: 'Greek Yogurt Parfait', qty: '1', cal: 280, p: 18, c: 32, f: 10 }] },
+      { slot: 'lunch', time: '13:15', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW012B', items: [{ name: 'Protein Power Bowl', qty: '1', cal: 485, p: 42, c: 35, f: 18 }] },
       { slot: 'snack', time: '17:00', source: 'manual', items: [{ name: 'Protein Shake', qty: '1', cal: 180, p: 25, c: 8, f: 4 }] },
-      { slot: 'dinner', time: '20:00', source: 'swiggy', restaurant: 'Dominos', items: [{ name: 'Margherita (Medium)', qty: '1', cal: 680, p: 28, c: 78, f: 28 }] },
+      { slot: 'dinner', time: '20:00', source: 'swiggy', restaurant: 'Dominos', orderId: 'SW012C', items: [{ name: 'Margherita (Medium)', qty: '1', cal: 680, p: 28, c: 78, f: 28 }] },
+    ] 
+  },
+  '2026-04-11': { 
+    meals: [
+      { slot: 'breakfast', time: '08:00', source: 'manual', items: [{ name: 'Oatmeal with Banana', qty: '1 bowl', cal: 320, p: 12, c: 58, f: 6 }] },
+      { slot: 'lunch', time: '12:45', source: 'swiggy', restaurant: 'Salad Days', orderId: 'SW011A', items: [{ name: 'Caesar Salad', qty: '1 bowl', cal: 380, p: 18, c: 22, f: 26 }, { name: 'Grilled Chicken Add-on', qty: '100g', cal: 165, p: 31, c: 0, f: 4 }] },
+      { slot: 'snack', time: '16:30', source: 'manual', items: [{ name: 'Greek Yogurt', qty: '150g', cal: 117, p: 12, c: 11, f: 3 }] },
+      { slot: 'dinner', time: '20:15', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW011B', items: [{ name: 'Grilled Chicken Breast', qty: '200g', cal: 330, p: 62, c: 0, f: 8 }, { name: 'Steamed Veggies', qty: '1 portion', cal: 80, p: 4, c: 14, f: 2 }] },
+    ] 
+  },
+  '2026-04-10': { 
+    meals: [
+      { slot: 'breakfast', time: '08:45', source: 'swiggy', restaurant: 'Smoothie Factory', orderId: 'SW010A', items: [{ name: 'Protein Smoothie Bowl', qty: '1', cal: 350, p: 18, c: 48, f: 10 }] },
+      { slot: 'lunch', time: '13:00', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW010B', items: [{ name: 'Protein Power Bowl', qty: '1', cal: 485, p: 42, c: 35, f: 18 }] },
+      { slot: 'dinner', time: '19:30', source: 'swiggy', restaurant: 'Coastal Kitchen', orderId: 'SW010C', items: [{ name: 'Grilled Fish & Veggies', qty: '1 plate', cal: 380, p: 45, c: 18, f: 16 }] },
+    ] 
+  },
+  '2026-04-09': { 
+    meals: [
+      { slot: 'breakfast', time: '09:15', source: 'manual', items: [{ name: 'Eggs & Chapati', qty: '3 eggs + 2 chapati', cal: 432, p: 24, c: 40, f: 22 }] },
+      { slot: 'lunch', time: '13:30', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW009A', items: [{ name: 'Grilled Chicken Salad', qty: '1', cal: 320, p: 38, c: 12, f: 14 }] },
+      { slot: 'snack', time: '17:30', source: 'manual', items: [{ name: 'Almonds', qty: '30g', cal: 175, p: 6, c: 6, f: 15 }] },
+      { slot: 'dinner', time: '20:45', source: 'swiggy', restaurant: 'Punjab Grill', orderId: 'SW009B', items: [{ name: 'Chicken Tikka', qty: '6 pcs', cal: 280, p: 35, c: 8, f: 12 }, { name: 'Raita', qty: '1 bowl', cal: 80, p: 4, c: 6, f: 4 }] },
+    ] 
+  },
+  '2026-04-08': { 
+    meals: [
+      { slot: 'breakfast', time: '08:00', source: 'swiggy', restaurant: 'Theobroma', orderId: 'SW008A', items: [{ name: 'Greek Yogurt Parfait', qty: '1', cal: 280, p: 18, c: 32, f: 10 }, { name: 'Black Coffee', qty: '1', cal: 5, p: 0, c: 1, f: 0 }] },
+      { slot: 'lunch', time: '12:30', source: 'swiggy', restaurant: 'Salad Days', orderId: 'SW008B', items: [{ name: 'Quinoa Salad Bowl', qty: '1', cal: 320, p: 14, c: 45, f: 12 }, { name: 'Grilled Paneer', qty: '100g', cal: 265, p: 18, c: 4, f: 20 }] },
+      { slot: 'dinner', time: '20:00', source: 'swiggy', restaurant: 'Bowl Company', orderId: 'SW008C', items: [{ name: 'Protein Power Bowl', qty: '1', cal: 485, p: 42, c: 35, f: 18 }] },
+    ] 
+  },
+  '2026-04-07': { 
+    meals: [
+      { slot: 'breakfast', time: '09:00', source: 'manual', items: [{ name: 'Poha with Peanuts', qty: '1 plate', cal: 280, p: 8, c: 42, f: 10 }] },
+      { slot: 'lunch', time: '13:15', source: 'swiggy', restaurant: 'Eatfit', orderId: 'SW007A', items: [{ name: 'Grilled Chicken Breast', qty: '200g', cal: 330, p: 62, c: 0, f: 8 }, { name: 'Brown Rice', qty: '150g', cal: 165, p: 4, c: 35, f: 1 }] },
+      { slot: 'snack', time: '16:00', source: 'manual', items: [{ name: 'Protein Bar', qty: '1', cal: 200, p: 20, c: 22, f: 8 }] },
+      { slot: 'dinner', time: '20:30', source: 'swiggy', restaurant: 'Coastal Kitchen', orderId: 'SW007B', items: [{ name: 'Grilled Fish & Veggies', qty: '1 plate', cal: 380, p: 45, c: 18, f: 16 }] },
     ] 
   },
 };
@@ -152,9 +176,9 @@ const formatDateKey = (date) => {
 };
 
 const formatDisplayDate = (date) => { 
-  const today = new Date(); 
+  const today = new Date('2026-04-16'); 
   const dateStr = typeof date === 'string' ? date : formatDateKey(date);
-  if (dateStr === formatDateKey(today)) return 'Today'; 
+  if (dateStr === '2026-04-16') return 'Today'; 
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); 
 };
@@ -162,9 +186,19 @@ const formatDisplayDate = (date) => {
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
 
 // ============================================
-// SWIGGY LOGO COMPONENT
+// OFFICIAL SWIGGY LOGO COMPONENT (Location Pin with S cutout)
+// Accurately traced from official logo
 // ============================================
 const SwiggyLogo = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill={colors.primary}/>
+    <path d="M8 12C8 10.8954 8.89543 10 10 10H22C23.1046 10 24 10.8954 24 12V14C24 14 20 16 16 16C12 16 8 14 8 14V12Z" fill="white"/>
+    <path d="M8 16C8 16 12 18 16 18C20 18 24 16 24 16V20C24 21.1046 23.1046 22 22 22H10C8.89543 22 8 21.1046 8 20V16Z" fill="white"/>
+  </svg>
+);
+
+// Small circular version for inline use (app icon style)
+const SwiggyLogoSmall = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
     <rect width="32" height="32" rx="8" fill={colors.primary}/>
     <path d="M8 12C8 10.8954 8.89543 10 10 10H22C23.1046 10 24 10.8954 24 12V14C24 14 20 16 16 16C12 16 8 14 8 14V12Z" fill="white"/>
@@ -237,7 +271,7 @@ const SwiggyOrderCard = ({ meal, icon: Icon, iconBg, title }) => {
                 <>
                   <span style={{ color: '#DDD' }}>·</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <SwiggyLogo size={14} />
+                    <SwiggyLogoSmall size={14} />
                     <span style={{ fontSize: 11, color: colors.primary, fontWeight: 600 }}>{meal.restaurant}</span>
                   </div>
                 </>
@@ -286,7 +320,6 @@ const SwiggyOrderCard = ({ meal, icon: Icon, iconBg, title }) => {
 // SMART RECOMMENDATIONS (Based on remaining calories)
 // ============================================
 const SmartRecommendations = ({ remaining, inventory }) => {
-  // Generate recommendations based on remaining macros
   const generateRecommendations = () => {
     const recs = [];
     const foods = inventory || RESTAURANT_INVENTORY;
@@ -295,10 +328,8 @@ const SmartRecommendations = ({ remaining, inventory }) => {
       return [{ type: 'complete', message: "You're close to your daily target! Great job! 🎉" }];
     }
     
-    // Find meals that fit within remaining calories
     const fittingMeals = foods.filter(f => f.cal <= remaining.cal + 100);
     
-    // High protein options if protein is low
     if (remaining.p > 30) {
       const highProtein = fittingMeals
         .filter(f => f.p >= 25)
@@ -315,7 +346,6 @@ const SmartRecommendations = ({ remaining, inventory }) => {
       });
     }
     
-    // Low calorie options if calories are tight
     if (remaining.cal < 600 && remaining.cal > 200) {
       const lowCal = fittingMeals
         .filter(f => f.cal <= 400)
@@ -334,7 +364,6 @@ const SmartRecommendations = ({ remaining, inventory }) => {
       });
     }
     
-    // Balanced options
     if (remaining.cal >= 400) {
       const balanced = fittingMeals
         .filter(f => f.tags?.includes('balanced'))
@@ -421,55 +450,26 @@ const SmartRecommendations = ({ remaining, inventory }) => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
             <div>
-              <div style={{ 
-                fontSize: 10, 
-                fontWeight: 700, 
-                color: colors.primary,
-                marginBottom: 4,
-              }}>
-                {rec.tag}
-              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: colors.primary, marginBottom: 4 }}>{rec.tag}</div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{rec.meal.name}</div>
-              <div style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-                {rec.meal.restaurant}
-              </div>
+              <div style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>{rec.meal.restaurant}</div>
             </div>
-            <div style={{ 
-              background: colors.primaryLight, 
-              padding: '6px 12px', 
-              borderRadius: 8,
-              textAlign: 'right',
-            }}>
+            <div style={{ background: colors.primaryLight, padding: '6px 12px', borderRadius: 8, textAlign: 'right' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: colors.primary }}>{rec.meal.cal}</div>
               <div style={{ fontSize: 9, color: colors.primaryDark }}>kcal</div>
             </div>
           </div>
           
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#FAFAFA',
-            borderRadius: 10,
-            padding: 12,
-            marginBottom: 12,
-          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA', borderRadius: 10, padding: 12, marginBottom: 12 }}>
             <MacroPills p={rec.meal.p} c={rec.meal.c} f={rec.meal.f} />
             <div style={{ fontSize: 11, color: colors.textMuted }}>{rec.meal.serving}</div>
           </div>
           
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Sparkles size={14} color={colors.primary} />
-            <span style={{ fontSize: 12, color: colors.textSecondary }}>
-              {rec.reason}
-            </span>
+            <span style={{ fontSize: 12, color: colors.textSecondary }}>{rec.reason}</span>
           </div>
           
-          {/* Order CTA */}
           <button style={{
             width: '100%',
             marginTop: 14,
@@ -492,12 +492,7 @@ const SmartRecommendations = ({ remaining, inventory }) => {
         </div>
       ))}
       
-      <div style={{ 
-        textAlign: 'center', 
-        fontSize: 11, 
-        color: colors.textMuted,
-        padding: '8px 0 20px',
-      }}>
+      <div style={{ textAlign: 'center', fontSize: 11, color: colors.textMuted, padding: '8px 0 20px' }}>
         💡 Recommendations based on your remaining calorie budget
       </div>
     </div>
@@ -508,16 +503,14 @@ const SmartRecommendations = ({ remaining, inventory }) => {
 // ONGOING SUMMARY CHART
 // ============================================
 const OngoingSummary = ({ allData, selectedDate, targets }) => {
-  const [viewMode, setViewMode] = useState('days');
-  
-  const startDate = new Date('2026-04-10');
+  const startDate = new Date('2026-04-07');
   const currentDate = typeof selectedDate === 'string' ? new Date(selectedDate) : selectedDate;
   const currentDayNumber = Math.max(1, Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
   
   const generateDailyData = () => {
     const data = [];
     
-    for (let day = 1; day <= currentDayNumber; day++) {
+    for (let day = 1; day <= Math.min(currentDayNumber, 10); day++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + day - 1);
       const dateKey = date.toISOString().split('T')[0];
@@ -581,7 +574,7 @@ const OngoingSummary = ({ allData, selectedDate, targets }) => {
             <TrendingUp size={16} color={colors.primary} />
           </div>
           <span style={{ fontSize: 15, fontWeight: 600, color: colors.textPrimary }}>
-            Daily Trends
+            10-Day Trends
           </span>
         </div>
         
@@ -666,7 +659,6 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inventoryData })
     f: TARGETS.fat - totals.f,
   };
   
-  // Count Swiggy orders
   const swiggyOrders = meals.filter(m => m.source === 'swiggy').length;
   const manualEntries = meals.filter(m => m.source !== 'swiggy').length;
 
@@ -674,9 +666,9 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inventoryData })
     <>
       {/* Date Selector */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: '#F5F5F3', borderRadius: 12, padding: '8px 12px', marginBottom: 20 }}>
-        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={18} color="#666" /></button>
+        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split('T')[0]); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={18} color="#666" /></button>
         <div style={{ minWidth: 120, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{formatDisplayDate(selectedDate)}</div>
-        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={18} color="#666" /></button>
+        <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split('T')[0]); }} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={18} color="#666" /></button>
       </div>
 
       {/* Goal Badge */}
@@ -701,7 +693,7 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inventoryData })
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
         <div style={styles.kpiCard}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <SwiggyLogo size={16} />
+            <SwiggyLogoSmall size={16} />
             <span style={{ fontSize: 10, color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase' }}>Swiggy Orders</span>
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: colors.primary }}>{swiggyOrders}</div>
@@ -859,15 +851,7 @@ const DiscoverTab = ({ data }) => {
             <div style={{ fontSize: 11, color: colors.textMuted }}>{item.serving}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               {item.tags?.map((tag, i) => (
-                <span key={i} style={{ 
-                  fontSize: 9, 
-                  padding: '3px 8px', 
-                  borderRadius: 4, 
-                  background: colors.primaryLight, 
-                  color: colors.primary 
-                }}>
-                  {tag}
-                </span>
+                <span key={i} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 4, background: colors.primaryLight, color: colors.primary }}>{tag}</span>
               ))}
             </div>
           </div>
@@ -886,8 +870,7 @@ const DiscoverTab = ({ data }) => {
 // INSIGHTS TAB
 // ============================================
 const InsightsTab = ({ allData }) => {
-  // Calculate weekly averages
-  const dates = Object.keys(allData).sort().slice(-7);
+  const dates = Object.keys(allData).sort().slice(-10);
   
   const weeklyTotals = dates.map(date => {
     const dayData = allData[date] || { meals: [] };
@@ -913,7 +896,7 @@ const InsightsTab = ({ allData }) => {
           Your Insights
         </h2>
         <p style={{ fontSize: 13, color: colors.textSecondary }}>
-          Weekly summary and patterns
+          10-day summary and patterns
         </p>
       </div>
       
@@ -923,7 +906,7 @@ const InsightsTab = ({ allData }) => {
           <div style={{ ...styles.cardIcon, background: `linear-gradient(135deg, ${colors.primaryLight}, #FFEDD5)` }}>
             <BarChart3 size={16} color={colors.primary} />
           </div>
-          <span style={styles.cardTitle}>This Week</span>
+          <span style={styles.cardTitle}>Last 10 Days</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           <div style={{ ...styles.miniKpi, background: colors.primaryLight }}>
@@ -980,6 +963,7 @@ const InsightsTab = ({ allData }) => {
         <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 16 }}>
           Get personalized meal plans, priority recommendations, and detailed nutrition insights
         </div>
+        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 16 }}>₹149<span style={{ fontSize: 14, fontWeight: 500 }}>/month</span></div>
         <button style={{
           padding: '12px 32px',
           borderRadius: 25,
@@ -1003,7 +987,7 @@ const InsightsTab = ({ allData }) => {
 export default function SwiggyCalorieTracker() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [allData, setAllData] = useState(SEED_DATA);
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState('2026-04-16');
   const [showAddModal, setShowAddModal] = useState(false);
 
   const tabs = [
@@ -1020,13 +1004,26 @@ export default function SwiggyCalorieTracker() {
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <SwiggyLogo size={32} />
+            {/* Left: Swiggy Logo + Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <SwiggyLogo size={28} />
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary }}>Calorie Tracker</div>
-                <div style={{ fontSize: 11, color: colors.textSecondary }}>Powered by Swiggy</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: colors.primary, letterSpacing: 1 }}>SWIGGY</span>
+                  <span style={{ 
+                    background: colors.primary, 
+                    color: 'white', 
+                    fontSize: 9, 
+                    fontWeight: 700, 
+                    padding: '3px 8px', 
+                    borderRadius: 4,
+                    letterSpacing: 0.5,
+                  }}>CALORIE TRACKER</span>
+                </div>
               </div>
             </div>
+            
+            {/* Right: Sync Status */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ 
                 background: '#F0FDF4', 
@@ -1079,7 +1076,7 @@ export default function SwiggyCalorieTracker() {
           <div style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '28px 28px 0 0', padding: 24 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700 }}>Log Meal</h2>
-              <button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, cursor: 'pointer' }}>
+              <button onClick={() => setShowAddModal(false)} style={{ background: '#F5F5F5', border: 'none', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={18} color="#888" />
               </button>
             </div>
@@ -1100,7 +1097,7 @@ export default function SwiggyCalorieTracker() {
                 alignItems: 'center',
                 gap: 8,
               }}>
-                <SwiggyLogo size={24} />
+                <SwiggyLogoSmall size={24} />
                 <span>From Swiggy Order</span>
               </button>
               <button style={{ 
