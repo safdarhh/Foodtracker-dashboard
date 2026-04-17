@@ -186,24 +186,39 @@ const formatDisplayDate = (date) => {
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
 
 // ============================================
-// OFFICIAL SWIGGY LOGO COMPONENT (Location Pin with S cutout)
-// Accurately traced from official logo
+// OFFICIAL SWIGGY LOGO COMPONENT
+// Uses external logo image for exact brand match
+// Place 'swiggy-logo.png' in your public folder
 // ============================================
-const SwiggyLogo = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="8" fill={colors.primary}/>
-    <path d="M8 12C8 10.8954 8.89543 10 10 10H22C23.1046 10 24 10.8954 24 12V14C24 14 20 16 16 16C12 16 8 14 8 14V12Z" fill="white"/>
-    <path d="M8 16C8 16 12 18 16 18C20 18 24 16 24 16V20C24 21.1046 23.1046 22 22 22H10C8.89543 22 8 21.1046 8 20V16Z" fill="white"/>
-  </svg>
+
+// Option 1: Use this if you have the logo in your public folder
+// const SWIGGY_LOGO_URL = '/swiggy-logo.png';
+
+// Option 2: Use this CDN link for the official logo
+const SWIGGY_LOGO_URL = '/swiggy-logo.png';
+const SwiggyLogo = ({ size = 32 }) => (
+  <img 
+    src={SWIGGY_LOGO_URL}
+    alt="Swiggy"
+    style={{ 
+      width: 'auto', 
+      height: size * 1.25, 
+      objectFit: 'contain',
+    }}
+  />
 );
 
-// Small circular version for inline use (app icon style)
+// Small circular version for inline use
 const SwiggyLogoSmall = ({ size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="8" fill={colors.primary}/>
-    <path d="M8 12C8 10.8954 8.89543 10 10 10H22C23.1046 10 24 10.8954 24 12V14C24 14 20 16 16 16C12 16 8 14 8 14V12Z" fill="white"/>
-    <path d="M8 16C8 16 12 18 16 18C20 18 24 16 24 16V20C24 21.1046 23.1046 22 22 22H10C8.89543 22 8 21.1046 8 20V16Z" fill="white"/>
-  </svg>
+  <img 
+    src={SWIGGY_LOGO_URL}
+    alt="Swiggy"
+    style={{ 
+      width: size, 
+      height: size, 
+      objectFit: 'contain',
+    }}
+  />
 );
 
 // ============================================
@@ -1003,41 +1018,34 @@ export default function SwiggyCalorieTracker() {
 
       <header style={styles.header}>
         <div style={styles.headerInner}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            {/* Left: Swiggy Logo + Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <SwiggyLogo size={28} />
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: colors.primary, letterSpacing: 1 }}>SWIGGY</span>
-                  <span style={{ 
-                    background: colors.primary, 
-                    color: 'white', 
-                    fontSize: 9, 
-                    fontWeight: 700, 
-                    padding: '3px 8px', 
-                    borderRadius: 4,
-                    letterSpacing: 0.5,
-                  }}>CALORIE TRACKER</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right: Sync Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ 
-                background: '#F0FDF4', 
-                padding: '6px 12px', 
-                borderRadius: 20, 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 6,
-              }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.success }}></div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: colors.success }}>Synced</span>
-              </div>
-            </div>
-          </div>
+          {/* Single row: Logo (left) | CALORIE TRACKER (center) | Synced (right) */}
+<div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+  {/* Left column */}
+  <div style={{ flex: 1 }}>
+    <SwiggyLogo size={36} />
+  </div>
+  
+  {/* Center column - CALORIE TRACKER Badge */}
+  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+    <span style={{ 
+      background: colors.primary, 
+      color: 'white', 
+      fontSize: 10, 
+      fontWeight: 700, 
+      padding: '5px 14px', 
+      borderRadius: 6,
+      letterSpacing: 0.5,
+    }}>CALORIE TRACKER</span>
+  </div>
+  
+  {/* Right column - Sync Status */}
+  <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+    <div style={{ background: '#F0FDF4', padding: '6px 12px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.success }}></div>
+      <span style={{ fontSize: 11, fontWeight: 600, color: colors.success }}>Synced</span>
+    </div>
+  </div>
+</div>
           <div style={styles.tabs}>
             {tabs.map(tab => (
               <button 
