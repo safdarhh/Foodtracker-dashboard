@@ -188,6 +188,19 @@ const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
 // ============================================
 // SWIGGY LOGO COMPONENT (Inline SVG - No External Dependencies)
 // ============================================
+const LOGO_URL = '/logo.png';
+const Logo = ({ size = 32 }) => (
+  <img 
+    src={LOGO_URL}
+    alt="Logo"
+    style={{ 
+      width: 'auto', 
+      height: size * 1.25, 
+      objectFit: 'contain',
+    }}
+  />
+);
+
 // Option 2: Use this CDN link for the official logo
 const SWIGGY_LOGO_URL = '/swiggy-logo.png';
 const SwiggyLogo = ({ size = 32 }) => (
@@ -495,7 +508,7 @@ const SmartRecommendations = ({ remaining, inventory }) => {
             gap: 8,
           }}>
             <ShoppingBag size={16} />
-            Order on Swiggy
+            Order on <Logo size={28} />
           </button>
         </div>
       ))}
@@ -753,7 +766,7 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inventoryData })
           <div style={{ textAlign: 'center', padding: 40, color: colors.textMuted }}>
             <div style={{ fontSize: 32 }}>🍽️</div>
             <div style={{ marginTop: 12 }}>No meals tracked yet</div>
-            <div style={{ fontSize: 12, marginTop: 8 }}>Order on Swiggy to auto-track!</div>
+            <div style={{ fontSize: 12, marginTop: 8 }}>Order on <Logo size={28} /> to auto-track!</div>
           </div>
         )}
       </div>
