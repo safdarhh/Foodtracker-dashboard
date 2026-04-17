@@ -186,14 +186,8 @@ const formatDisplayDate = (date) => {
 const getDayData = (allData, dateKey) => allData[dateKey] || { meals: [] };
 
 // ============================================
-// OFFICIAL SWIGGY LOGO COMPONENT
-// Uses external logo image for exact brand match
-// Place 'swiggy-logo.png' in your public folder
+// SWIGGY LOGO COMPONENT (Inline SVG - No External Dependencies)
 // ============================================
-
-// Option 1: Use this if you have the logo in your public folder
-// const SWIGGY_LOGO_URL = '/swiggy-logo.png';
-
 // Option 2: Use this CDN link for the official logo
 const SWIGGY_LOGO_URL = '/swiggy-logo.png';
 const SwiggyLogo = ({ size = 32 }) => (
@@ -220,7 +214,6 @@ const SwiggyLogoSmall = ({ size = 20 }) => (
     }}
   />
 );
-
 // ============================================
 // REUSABLE COMPONENTS
 // ============================================
@@ -778,9 +771,6 @@ const DashboardTab = ({ allData, selectedDate, setSelectedDate, inventoryData })
       
       {/* Smart Recommendations */}
       <SmartRecommendations remaining={remaining} inventory={inventoryData} />
-      
-      {/* Progress Chart */}
-      <OngoingSummary allData={allData} selectedDate={selectedDate} targets={TARGETS} />
     </>
   );
 };
@@ -965,6 +955,9 @@ const InsightsTab = ({ allData }) => {
         </div>
       </div>
       
+      {/* 10-Day Trends Chart */}
+      <OngoingSummary allData={allData} selectedDate={'2026-04-16'} targets={TARGETS} />
+      
       {/* Subscription Upsell */}
       <div style={{ 
         background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`, 
@@ -1019,33 +1012,43 @@ export default function SwiggyCalorieTracker() {
       <header style={styles.header}>
         <div style={styles.headerInner}>
           {/* Single row: Logo (left) | CALORIE TRACKER (center) | Synced (right) */}
-<div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-  {/* Left column */}
-  <div style={{ flex: 1 }}>
-    <SwiggyLogo size={36} />
-  </div>
-  
-  {/* Center column - CALORIE TRACKER Badge */}
-  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-    <span style={{ 
-      background: colors.primary, 
-      color: 'white', 
-      fontSize: 10, 
-      fontWeight: 700, 
-      padding: '5px 14px', 
-      borderRadius: 6,
-      letterSpacing: 0.5,
-    }}>CALORIE TRACKER</span>
-  </div>
-  
-  {/* Right column - Sync Status */}
-  <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-    <div style={{ background: '#F0FDF4', padding: '6px 12px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
-      <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.success }}></div>
-      <span style={{ fontSize: 11, fontWeight: 600, color: colors.success }}>Synced</span>
-    </div>
-  </div>
-</div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+            {/* Left column - fixed width */}
+            <div style={{ flex: 1 }}>
+              <SwiggyLogo size={36} />
+            </div>
+            
+            {/* Center column - CALORIE TRACKER Badge */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <span style={{ 
+                background: colors.primary, 
+                color: 'white', 
+                fontSize: 10, 
+                fontWeight: 700, 
+                padding: '5px 14px', 
+                borderRadius: 6,
+                letterSpacing: 0.5,
+                whiteSpace: 'nowrap',
+              }}>CALORIE TRACKER</span>
+            </div>
+            
+            {/* Right column - Sync Status */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ 
+                background: '#F0FDF4', 
+                padding: '6px 12px', 
+                borderRadius: 20, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 6,
+              }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.success }}></div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: colors.success }}>Synced</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Tabs */}
           <div style={styles.tabs}>
             {tabs.map(tab => (
               <button 
