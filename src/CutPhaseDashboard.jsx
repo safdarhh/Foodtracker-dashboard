@@ -1042,7 +1042,7 @@ export default function SwiggyCalorieTracker() {
                 borderRadius: 6,
                 letterSpacing: 0.5,
                 whiteSpace: 'nowrap',
-              }}>CALORIE TRACKER</span>
+              }}>Swiggy Health</span>
             </div>
             
             {/* Right column - Sync Status */}
